@@ -20,6 +20,7 @@ import org.eclipse.hawkbit.dmf.json.model.DmfMultiActionRequest;
 import org.eclipse.hawkbit.dmf.json.model.DmfMultiActionRequest.DmfMultiActionElement;
 import org.eclipse.hawkbit.dmf.json.model.DmfSoftwareModule;
 import org.eclipse.hawkbit.repository.DeploymentManagement;
+import org.eclipse.hawkbit.repository.Identifiable;
 import org.eclipse.hawkbit.repository.event.remote.MultiActionAssignEvent;
 import org.eclipse.hawkbit.repository.event.remote.MultiActionCancelEvent;
 import org.eclipse.hawkbit.repository.event.remote.TargetAssignDistributionSetEvent;
@@ -53,6 +54,8 @@ import org.eclipse.hawkbit.repository.test.matcher.ExpectEvents;
 import org.eclipse.hawkbit.repository.test.util.WithSpringAuthorityRule;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 
 import java.util.AbstractMap.SimpleEntry;
@@ -61,6 +64,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,6 +80,7 @@ import static org.eclipse.hawkbit.repository.model.Action.ActionType.DOWNLOAD_ON
 @Story("Amqp Message Dispatcher Service")
 public class AmqpMessageDispatcherServiceIntegrationTest extends AbstractAmqpServiceIntegrationTest {
     private static final String TARGET_PREFIX = "Dmf_disp_";
+    private static final Logger LOG = LoggerFactory.getLogger(AmqpMessageDispatcherServiceIntegrationTest.class);
 
     @Test
     @Description("Verify that a distribution assignment send a download and install message.")
@@ -152,11 +157,19 @@ public class AmqpMessageDispatcherServiceIntegrationTest extends AbstractAmqpSer
         final String controllerId = TARGET_PREFIX + "assignDistributionSetMultipleTimes";
 
         final DistributionSetAssignmentResult assignmentResult = registerTargetAndAssignDistributionSet(controllerId);
+        final String sw1 = assignmentResult.getDistributionSet().getModules().stream()
+                .map(Identifiable::getId).map(Objects::toString).collect(Collectors.joining(","));
+        LOG.info("Created ds1 with modules {}", sw1);
+
         final DistributionSet distributionSet2 = testdataFactory.createDistributionSet();
+        final String sw2 = distributionSet2.getModules().stream()
+                .map(Identifiable::getId).map(Objects::toString).collect(Collectors.joining(","));
+        LOG.info("Created ds2 with modules {}", sw2);
 
         testdataFactory.addSoftwareModuleMetadata(distributionSet2);
 
-        // first assignment will be canceled -> Open cancellations -> No message through the DMF
+        // first assignment will be canceled -> Open cancellations -> No message through
+        // the DMF
         assignDistributionSet(distributionSet2.getId(), controllerId);
 
         // should not get the message of the second assignment
