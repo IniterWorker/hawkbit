@@ -159,12 +159,14 @@ public class AmqpMessageDispatcherServiceIntegrationTest extends AbstractAmqpSer
         final DistributionSetAssignmentResult assignmentResult = registerTargetAndAssignDistributionSet(controllerId);
         final String sw1 = assignmentResult.getDistributionSet().getModules().stream()
                 .map(Identifiable::getId).map(Objects::toString).collect(Collectors.joining(","));
-        LOG.info("Created ds1 with modules {}", sw1);
+        LOG.warn("Created ds1 with modules {}", sw1);
 
         final DistributionSet distributionSet2 = testdataFactory.createDistributionSet();
+        testdataFactory.addSoftwareModuleMetadata(distributionSet2);
+
         final String sw2 = distributionSet2.getModules().stream()
                 .map(Identifiable::getId).map(Objects::toString).collect(Collectors.joining(","));
-        LOG.info("Created ds2 with modules {}", sw2);
+        LOG.warn("Created ds2 with modules {}", sw2);
 
         testdataFactory.addSoftwareModuleMetadata(distributionSet2);
 
