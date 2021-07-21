@@ -162,7 +162,6 @@ public class AmqpMessageDispatcherServiceIntegrationTest extends AbstractAmqpSer
         LOG.warn("Created ds1 with modules {}", sw1);
 
         final DistributionSet distributionSet2 = testdataFactory.createDistributionSet();
-        testdataFactory.addSoftwareModuleMetadata(distributionSet2);
 
         final String sw2 = distributionSet2.getModules().stream()
                 .map(Identifiable::getId).map(Objects::toString).collect(Collectors.joining(","));
