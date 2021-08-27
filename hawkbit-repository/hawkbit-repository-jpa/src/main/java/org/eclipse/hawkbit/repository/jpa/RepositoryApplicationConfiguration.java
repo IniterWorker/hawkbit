@@ -72,6 +72,8 @@ import org.eclipse.hawkbit.repository.jpa.configuration.MultiTenantJpaTransactio
 import org.eclipse.hawkbit.repository.jpa.event.JpaEventEntityManager;
 import org.eclipse.hawkbit.repository.jpa.executor.AfterTransactionCommitDefaultServiceExecutor;
 import org.eclipse.hawkbit.repository.jpa.executor.AfterTransactionCommitExecutor;
+import org.eclipse.hawkbit.repository.jpa.factory.AclInjectionPostProcessor;
+import org.eclipse.hawkbit.repository.jpa.factory.AclRepositoryFactoryBean;
 import org.eclipse.hawkbit.repository.jpa.model.helper.AfterTransactionCommitExecutorHolder;
 import org.eclipse.hawkbit.repository.jpa.model.helper.EntityInterceptorHolder;
 import org.eclipse.hawkbit.repository.jpa.model.helper.SecurityTokenGeneratorHolder;
@@ -122,6 +124,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.repository.core.support.RepositoryProxyPostProcessor;
 import org.springframework.integration.support.locks.LockRegistry;
 import org.springframework.orm.jpa.vendor.AbstractJpaVendorAdapter;
 import org.springframework.orm.jpa.vendor.EclipseLinkJpaDialect;
@@ -140,7 +143,7 @@ import com.google.common.collect.Maps;
  * General configuration for hawkBit's Repository.
  *
  */
-@EnableJpaRepositories(value = "org.eclipse.hawkbit.repository.jpa", repositoryBaseClass = SimpleJpaWithNoCountRepository.class)
+@EnableJpaRepositories(value = "org.eclipse.hawkbit.repository.jpa", repositoryBaseClass = SimpleJpaWithNoCountRepository.class, repositoryFactoryBeanClass = AclRepositoryFactoryBean.class)
 @EnableTransactionManagement
 @EnableJpaAuditing
 @EnableAspectJAutoProxy
