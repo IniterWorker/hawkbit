@@ -88,10 +88,14 @@ public class AddRolloutWindowLayout extends AbstractRolloutWindowLayout {
         advancedGroupsLayout.setAdvancedGroupDefinitionsChangedListener(this::onAdvancedGroupsChanged);
     }
 
-    private void onTargetFilterQueryChange(final String filterQuery) {
+    private void onTargetFilterQueryChange(final String filterQuery, final Long dsTypeId) {
         this.filterQuery = filterQuery;
 
-        totalTargets = !StringUtils.isEmpty(filterQuery) ? targetManagement.countByRsql(filterQuery) : null;
+        totalTargets = null;
+        if (!StringUtils.isEmpty(filterQuery)) {
+            totalTargets = dsTypeId == null ? targetManagement.countByRsql(filterQuery)
+                    : targetManagement.countByRsqlAndCompatible(filterQuery, dsTypeId);
+        }
         updateTotalTargetsAwareComponents();
 
         if (isAdvancedGroupsTabSelected()) {
