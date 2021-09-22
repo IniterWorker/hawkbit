@@ -9,7 +9,6 @@
 package org.eclipse.hawkbit.ui.rollout.window.components;
 
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.eclipse.hawkbit.repository.model.Action.ActionType;
 import org.eclipse.hawkbit.repository.model.TargetFilterQuery;
@@ -29,6 +28,7 @@ import org.eclipse.hawkbit.ui.utils.VaadinMessageSource;
 
 import com.vaadin.data.Binder;
 import com.vaadin.data.Binder.Binding;
+import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.data.ValidationException;
 import com.vaadin.data.Validator;
 import com.vaadin.data.validator.LongRangeValidator;
@@ -72,7 +72,7 @@ public class RolloutFormLayout extends ValidatableLayout {
     private Long rolloutId;
     private Long totalTargets;
 
-    private BiConsumer<String, Long> filterQueryChangedListener;
+    private BiConsumer<String, Long> filterQueryOrDistSetChangedListener;
 
     /**
      * Constructor for RolloutFormLayout
@@ -191,16 +191,25 @@ public class RolloutFormLayout extends ValidatableLayout {
     }
 
     private void addValueChangeListeners() {
-        targetFilterQueryCombo.getComponent().addValueChangeListener(event -> {
-            if (filterQueryChangedListener != null) {
-                filterQueryChangedListener.accept(event.getValue() != null ? event.getValue().getQuery() : null, dsCombo.isEmpty()? null : dsCombo.getValue().getTypeInfo().getId());
-            }
-        });
+        targetFilterQueryCombo.getComponent().addValueChangeListener(combinedChangeListener());
+        dsCombo.addValueChangeListener(combinedChangeListener());
 
         actionTypeLayout.getComponent().getActionTypeOptionGroup().addValueChangeListener(
                 event -> actionTypeLayout.setRequired(event.getValue() == ActionType.TIMEFORCED));
         autoStartOptionGroupLayout.getComponent().getAutoStartOptionGroup().addValueChangeListener(
                 event -> autoStartOptionGroupLayout.setRequired(event.getValue() == AutoStartOption.SCHEDULED));
+    }
+
+    private <T> ValueChangeListener<T> combinedChangeListener() {
+        return event -> {
+            if (filterQueryOrDistSetChangedListener != null) {
+                final String rsqlQuery = targetFilterQueryCombo.getComponent().isEmpty() ? null
+                        : targetFilterQueryCombo.getComponent().getValue().getQuery();
+                final Long distSetId = dsCombo.isEmpty() ? null : dsCombo.getValue().getId();
+
+                filterQueryOrDistSetChangedListener.accept(rsqlQuery, distSetId);
+            }
+        };
     }
 
     /**
@@ -277,13 +286,14 @@ public class RolloutFormLayout extends ValidatableLayout {
     }
 
     /**
-     * Sets the changed listener for filter query
+     * Sets the changed listener for filter query or distribution set
      *
-     * @param filterQueryChangedListener
+     * @param filterQueryOrDistSetChangedListener
      *            Changed listener
      */
-    public void setFilterQueryChangedListener(final BiConsumer<String, Long> filterQueryChangedListener) {
-        this.filterQueryChangedListener = filterQueryChangedListener;
+    public void setFilterQueryOrDistSetChangedListener(
+            final BiConsumer<String, Long> filterQueryOrDistSetChangedListener) {
+        this.filterQueryOrDistSetChangedListener = filterQueryOrDistSetChangedListener;
     }
 
     /**

@@ -20,9 +20,9 @@ import org.eclipse.hawkbit.im.authentication.SpPermission.SpringEvalExpressions;
 import org.eclipse.hawkbit.repository.builder.RolloutCreate;
 import org.eclipse.hawkbit.repository.builder.RolloutGroupCreate;
 import org.eclipse.hawkbit.repository.builder.RolloutUpdate;
+import org.eclipse.hawkbit.repository.exception.AssignmentQuotaExceededException;
 import org.eclipse.hawkbit.repository.exception.EntityNotFoundException;
 import org.eclipse.hawkbit.repository.exception.EntityReadOnlyException;
-import org.eclipse.hawkbit.repository.exception.AssignmentQuotaExceededException;
 import org.eclipse.hawkbit.repository.exception.RSQLParameterSyntaxException;
 import org.eclipse.hawkbit.repository.exception.RSQLParameterUnsupportedFieldException;
 import org.eclipse.hawkbit.repository.exception.RolloutIllegalStateException;
@@ -170,8 +170,8 @@ public interface RolloutManagement {
             RolloutGroupConditions conditions);
 
     /**
-     * Calculates how many targets are addressed by each rollout group and
-     * returns the validation information.
+     * Calculates how many targets are addressed by each rollout group and returns
+     * the validation information.
      *
      * @param groups
      *            a list of rollout groups
@@ -179,6 +179,8 @@ public interface RolloutManagement {
      *            the rollout
      * @param createdAt
      *            timestamp when the rollout was created
+     * @param distSetId
+     *            ID of the distribution set of the rollout
      * @return the validation information
      * @throws RolloutIllegalStateException
      *             thrown when no targets are targeted by the rollout
@@ -188,7 +190,7 @@ public interface RolloutManagement {
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_ROLLOUT_MANAGEMENT_READ_AND_TARGET_READ)
     ListenableFuture<RolloutGroupsValidation> validateTargetsInGroups(@Valid List<RolloutGroupCreate> groups,
-            String targetFilter, Long createdAt);
+            String targetFilter, Long createdAt, @NotNull Long distSetId);
 
     /**
      * Retrieves all rollouts.
