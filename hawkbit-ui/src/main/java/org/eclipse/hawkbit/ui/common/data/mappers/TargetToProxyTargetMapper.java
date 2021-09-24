@@ -51,6 +51,8 @@ public class TargetToProxyTargetMapper extends AbstractNamedEntityToProxyNamedEn
         proxyTarget.setPollStatusToolTip(getPollStatusToolTip(target.getPollStatus()));
         proxyTarget.setSecurityToken(target.getSecurityToken());
         proxyTarget.setRequestAttributes(target.isRequestControllerAttributes());
+        //TODO: Check it
+        proxyTarget.setTargetType(target.getTargetType());
         if (target.getTargetType() != null){
             TargetType type = target.getTargetType();
             proxyTarget.setTypeInfo(new ProxyTypeInfo(type.getId(), type.getName()));

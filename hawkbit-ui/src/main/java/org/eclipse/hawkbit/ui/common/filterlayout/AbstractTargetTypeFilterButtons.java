@@ -9,9 +9,11 @@
 package org.eclipse.hawkbit.ui.common.filterlayout;
 
 import com.vaadin.ui.Button;
+import com.vaadin.ui.Window;
 import org.eclipse.hawkbit.repository.TargetTypeManagement;
 import org.eclipse.hawkbit.ui.common.CommonUiDependencies;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyIdentifiableEntity;
+import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTag;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTarget;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTargetType;
 import org.eclipse.hawkbit.ui.common.event.EventTopics;
@@ -31,7 +33,7 @@ import org.eclipse.hawkbit.ui.utils.UINotification;
 import java.util.Collection;
 
 /**
- * Class for defining the tag filter buttons.
+ * Class for defining the target type filter buttons.
  */
 public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButtons<ProxyTargetType, Void> {
     private static final long serialVersionUID = 1L;
@@ -42,7 +44,7 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
 
     private final TargetTypeFilterButtonClick targetTypeFilterButtonClick;
 
-    private final TargetTypeManagement targetTypeManagement;
+    private final transient TargetTypeManagement targetTypeManagement;
 
     private final Button noTargetTypeButton;
 
@@ -50,7 +52,7 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
 
 
     /**
-     * Constructor for AbstractTagFilterButtons
+     * Constructor for AbstractTargetTypeFilterButtons
      * @param uiDependencies
      *            {@link CommonUiDependencies}
      * @param targetTagFilterLayoutUiState
@@ -86,6 +88,7 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
 
         noTargetType.addClickListener(event -> getFilterButtonClickBehaviour().processFilterClick(dummyNoTargetType));
 
+        noTargetType.addStyleName("filter-drop-hint-layout");
         return noTargetType;
     }
 
@@ -143,13 +146,13 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
 
 
     /**
-     * Tag deletion operation.
+     * Type deletion operation.
      *
-     * @param tagToDelete
-     *            tag to delete
+     * @param typeToDelete
+     *            target type to delete
      * @return true if delete target type has no exception
      */
-    protected abstract boolean deleteTargetTypeTag(final ProxyTargetType tagToDelete);
+    protected abstract boolean deleteTargetType(final ProxyTargetType typeToDelete);
 
     @Override
     public void restoreState() {
@@ -169,7 +172,7 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
         }
     }
 
-    protected abstract Collection<Long> filterExistingTagIds(final Collection<Long> tagIds);
+    protected abstract Collection<Long> filterExistingTypeIds(final Collection<Long> tagIds);
 
     public void resetFilterOnTargetTypeUpdated(Collection<Long> updatedTargetTypeIds) {
         if (isClickedTargetTypeInIds(updatedTargetTypeIds)) {

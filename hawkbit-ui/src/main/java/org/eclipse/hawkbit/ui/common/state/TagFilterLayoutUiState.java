@@ -22,7 +22,7 @@ public class TagFilterLayoutUiState extends HidableLayoutUiState {
     private final Map<Long, String> clickedTagIdsWithName = new HashMap<>();
 
     /**
-     * @return True if not targetType is clicked or selected
+     * @return True if no targetType is clicked or selected
      */
     public boolean isNoTargetTypeClicked() {
         return noTargetTypeClicked;
