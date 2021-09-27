@@ -883,6 +883,27 @@ public class TestdataFactory {
     }
 
     /**
+     * Creates {@link Target}s in repository and with {@link TargetType}.
+     *
+     * @param number
+     *            of {@link Target}s to create
+     * @param targetType
+     *            targetType of targets to create
+     *
+     * @return {@link List} of {@link Target} entities
+     */
+    public List<Target> createTargetsWithType(final int number, final TargetType targetType) {
+
+        final List<TargetCreate> targets = Lists.newArrayListWithExpectedSize(number);
+        for (int i = 0; i < number; i++) {
+            targets.add(entityFactory.target().create().controllerId(DEFAULT_CONTROLLER_ID + i)
+                    .targetType(targetType.getId()));
+        }
+
+        return targetManagement.create(targets);
+    }
+
+    /**
      * Creates {@link Target}s in repository and with given targetIds.
      * 
      * @param targetIds
@@ -1200,22 +1221,22 @@ public class TestdataFactory {
                 .orElseGet(() -> targetTypeManagement.create(entityFactory.targetType().create()
                         .name(targetTypeName).description(targetTypeName + " description").colour(DEFAULT_COLOUR)));
     }
-    
+
     /**
      * Creates {@link TargetType} in repository with given
-     * {@link TargetType#getName()}. Compatible distribution set types are assigned on creation 
+     * {@link TargetType#getName()}. Compatible distribution set types are assigned on creation
      *
      * @param targetTypeName
      *            {@link TargetType#getName()}
      *
      * @return persisted {@link TargetType}
      */
-    public TargetType createTargetType(final String targetTypeName, List<DistributionSetType> compatibleDsTypes) {
-        return targetTypeManagement.create(entityFactory.targetType().create()
-                        .name(targetTypeName).description(targetTypeName + " description").colour(DEFAULT_COLOUR)
-                        .compatible(compatibleDsTypes.stream().map(DistributionSetType::getId).collect(Collectors.toList())));
+    public TargetType createTargetType(final String targetTypeName, final List<DistributionSetType> compatibleDsTypes) {
+        return targetTypeManagement.create(entityFactory.targetType().create().name(targetTypeName)
+                .description(targetTypeName + " description").colour(DEFAULT_COLOUR)
+                .compatible(compatibleDsTypes.stream().map(DistributionSetType::getId).collect(Collectors.toList())));
     }
-        
+
     /**
      * Creates {@link TargetType} in repository with given
      * {@link TargetType#getName()}. No ds types are assigned on creation.
@@ -1225,11 +1246,11 @@ public class TestdataFactory {
      *
      * @return persisted {@link TargetType}
      */
-    public List<TargetType> createTargetTypes(final String targetTypePrefix, int count) {
+    public List<TargetType> createTargetTypes(final String targetTypePrefix, final int count) {
         final List<TargetTypeCreate> result = Lists.newArrayListWithExpectedSize(count);
         for (int i = 0; i < count; i++) {
-            result.add(entityFactory.targetType().create().name(targetTypePrefix + i).description(targetTypePrefix + " description")
-                    .colour(DEFAULT_COLOUR));
+            result.add(entityFactory.targetType().create().name(targetTypePrefix + i)
+                    .description(targetTypePrefix + " description").colour(DEFAULT_COLOUR));
         }
         return targetTypeManagement.create(result);
     }
