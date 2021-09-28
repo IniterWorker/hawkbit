@@ -21,6 +21,8 @@ import org.eclipse.hawkbit.repository.model.TargetType;
 public class IncompatibleTargetTypeException extends AbstractServerRtException {
 
     private static final long serialVersionUID = 1L;
+    private String targetTypeName;
+    private String distributionSetTypeName;
 
     /**
      * Creates a new IncompatibleTargetTypeException with
@@ -57,5 +59,15 @@ public class IncompatibleTargetTypeException extends AbstractServerRtException {
     public IncompatibleTargetTypeException(final String targetTypeName, final String distributionSetTypeName) {
         this(String.format("Target of type [%s] is not compatible with distribution set of type [%s]", targetTypeName,
                 distributionSetTypeName));
+        this.targetTypeName = targetTypeName;
+        this.distributionSetTypeName = distributionSetTypeName;
+    }
+
+    public String getTargetTypeName() {
+        return targetTypeName;
+    }
+
+    public String getDistributionSetTypeName() {
+        return distributionSetTypeName;
     }
 }
