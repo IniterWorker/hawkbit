@@ -42,9 +42,9 @@ import org.eclipse.hawkbit.repository.RepositoryProperties;
 import org.eclipse.hawkbit.repository.TenantConfigurationManagement;
 import org.eclipse.hawkbit.repository.event.remote.TargetAssignDistributionSetEvent;
 import org.eclipse.hawkbit.repository.exception.CancelActionNotAllowedException;
-import org.eclipse.hawkbit.repository.exception.DistributionSetTypeNotInTargetTypeException;
 import org.eclipse.hawkbit.repository.exception.EntityNotFoundException;
 import org.eclipse.hawkbit.repository.exception.ForceQuitActionNotAllowedException;
+import org.eclipse.hawkbit.repository.exception.IncompatibleTargetTypeException;
 import org.eclipse.hawkbit.repository.exception.IncompleteDistributionSetException;
 import org.eclipse.hawkbit.repository.exception.MultiAssignmentIsNotEnabledException;
 import org.eclipse.hawkbit.repository.jpa.configuration.Constants;
@@ -251,8 +251,8 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
                 throw new EntityNotFoundException(DistributionSet.class, distId);
             }
             if (!target.getTargetType().containsCompatibleDistributionSetType(jpaDistributionSet.getType().getId())) {
-                throw new DistributionSetTypeNotInTargetTypeException(target.getTargetType().getId(),
-                        jpaDistributionSet.getType().getId());
+                throw new IncompatibleTargetTypeException(target.getTargetType().getName(),
+                        jpaDistributionSet.getType().getName());
             }
         }
     }
