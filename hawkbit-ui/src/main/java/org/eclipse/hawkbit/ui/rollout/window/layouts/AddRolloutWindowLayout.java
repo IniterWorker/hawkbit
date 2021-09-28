@@ -100,7 +100,7 @@ public class AddRolloutWindowLayout extends AbstractRolloutWindowLayout {
         this.distributionSetId = distSetId;
 
         totalTargets = null;
-        if (!StringUtils.isEmpty(filterQuery) && distSetId != null) {
+        if (!StringUtils.isEmpty(filterQuery)) {
             totalTargets = getTotalTargets(filterQuery, distSetId);
         }
         updateTotalTargetsAwareComponents();
