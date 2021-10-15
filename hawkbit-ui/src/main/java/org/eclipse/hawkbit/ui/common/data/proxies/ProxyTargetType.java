@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Bosch Software Innovations GmbH and others.
+ * Copyright (c) 2021 Bosch.IO GmbH and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -9,18 +9,21 @@
 package org.eclipse.hawkbit.ui.common.data.proxies;
 
 import com.google.common.base.MoreObjects;
-import org.eclipse.hawkbit.repository.model.Tag;
+import java.util.Set;
+import org.eclipse.hawkbit.repository.model.TargetType;
 
 import java.util.Objects;
 
 /**
- * Proxy for {@link Tag}.
+ * Proxy for {@link TargetType}.
  */
-public class ProxyTargetType extends ProxyType {
+public class ProxyTargetType extends ProxyFilterButton {
 
     private static final long serialVersionUID = 1L;
 
     private boolean isNoTargetType;
+
+    private Set<ProxyType> selectedDsTypes;
 
     /**
      * Constructor
@@ -29,14 +32,14 @@ public class ProxyTargetType extends ProxyType {
     }
 
     /**
-     * Constructor for ProxyTag
+     * Constructor for ProxyTargetType
      *
      * @param id
-     *          Tag id
+     *          Type id
      * @param name
-     *          Tag name
+     *          Type name
      * @param colour
-     *          Tag oolour
+     *          Type colour
      */
     public ProxyTargetType(final Long id, final String name, final String colour) {
         setId(id);
@@ -50,6 +53,25 @@ public class ProxyTargetType extends ProxyType {
 
     public void setNoTargetType(boolean noTargetType) {
         isNoTargetType = noTargetType;
+    }
+
+    /**
+     * Gets the selected distribution sets types
+     *
+     * @return selectedDsTypes
+     */
+    public Set<ProxyType> getSelectedDsTypes() {
+        return selectedDsTypes;
+    }
+
+    /**
+     * Sets the selectedDsTypes
+     *
+     * @param selectedDsTypes
+     *            Selected distribution sets types
+     */
+    public void setSelectedDsTypes(final Set<ProxyType> selectedDsTypes) {
+        this.selectedDsTypes = selectedDsTypes;
     }
 
     @Override

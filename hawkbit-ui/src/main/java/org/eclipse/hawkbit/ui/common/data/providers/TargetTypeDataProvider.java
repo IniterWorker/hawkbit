@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 Bosch.IO GmbH and others.
+ * Copyright (c) 2021 Bosch.IO GmbH and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -9,50 +9,44 @@
 package org.eclipse.hawkbit.ui.common.data.providers;
 
 import org.eclipse.hawkbit.repository.TargetTypeManagement;
-import org.eclipse.hawkbit.repository.model.TargetTag;
 import org.eclipse.hawkbit.repository.model.TargetType;
-import org.eclipse.hawkbit.ui.common.data.mappers.TargetTypeToProxyTargetTypeMapper;
-import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTag;
-import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTargetType;
+import org.eclipse.hawkbit.ui.common.data.mappers.IdentifiableEntityToProxyIdentifiableEntityMapper;
+import org.eclipse.hawkbit.ui.common.data.proxies.ProxyIdentifiableEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.util.StringUtils;
 
 /**
- * Data provider for {@link TargetTag}, which dynamically loads a batch of
- * {@link TargetTag} entities from backend and maps them to corresponding
- * {@link ProxyTag} entities.
+ * Data provider for {@link TargetTypeManagement}, which dynamically loads a
+ * batch of {@link TargetType} entities from backend and maps them to
+ * corresponding output type.
+ *
+ * @param <T>
+ *            output type
  */
-public class TargetTypeDataProvider extends AbstractProxyDataProvider<ProxyTargetType, TargetType, Void> {
+public class TargetTypeDataProvider<T extends ProxyIdentifiableEntity>
+        extends AbstractProxyDataProvider<T, TargetType, String> {
     private static final long serialVersionUID = 1L;
-
     private final transient TargetTypeManagement targetTypeManagement;
 
-    /**
-     * Constructor for TargetTagDataProvider
-     *
-     * @param targetTypeManagement
-     *            TargetTagManagement
-     * @param mapper
-     *            TagToProxyTagMapper of TargetTag
-     */
-    public TargetTypeDataProvider(final TargetTypeManagement targetTypeManagement,
-                                  final TargetTypeToProxyTargetTypeMapper<TargetType> mapper) {
+    public TargetTypeDataProvider(final TargetTypeManagement targetTypeManagement, IdentifiableEntityToProxyIdentifiableEntityMapper<T, TargetType> mapper) {
         super(mapper, Sort.by(Direction.ASC, "name"));
-
         this.targetTypeManagement = targetTypeManagement;
+
     }
 
     @Override
-    protected Slice<TargetType> loadBackendEntities(final PageRequest pageRequest, final Void filter) {
-        Slice<TargetType> all = targetTypeManagement.findAll(pageRequest);
-        return all;
+    protected Page<TargetType> loadBackendEntities(PageRequest pageRequest, String filter) {
+        if (!StringUtils.isEmpty(filter)){
+            return targetTypeManagement.findByName(pageRequest, filter);
+        }
+        return targetTypeManagement.findAll(pageRequest);
     }
 
     @Override
-    protected long sizeInBackEnd(final PageRequest pageRequest, final Void filter) {
-        return targetTypeManagement.count();
+    protected long sizeInBackEnd(PageRequest pageRequest, String filter) {
+        return loadBackendEntities(PageRequest.of(0, 1), filter).getTotalElements();
     }
-
 }

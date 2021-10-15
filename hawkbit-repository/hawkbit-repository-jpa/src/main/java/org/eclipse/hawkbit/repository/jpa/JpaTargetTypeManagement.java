@@ -43,6 +43,7 @@ import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -138,6 +139,11 @@ public class JpaTargetTypeManagement implements TargetTypeManagement {
                 virtualPropertyReplacer, database);
 
         return convertPage(targetTypeRepository.findAll(spec, pageable), pageable);
+    }
+
+    @Override
+    public Page<TargetType> findByName(Pageable pageable, String name) {
+        return convertPage(targetTypeRepository.findAll(TargetTypeSpecification.likeName(name), pageable), pageable);
     }
 
     @Override

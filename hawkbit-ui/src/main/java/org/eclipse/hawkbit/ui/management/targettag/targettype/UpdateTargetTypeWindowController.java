@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 Bosch.IO GmbH and others.
+ * Copyright (c) 2021 Bosch.IO GmbH and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -10,6 +10,7 @@ package org.eclipse.hawkbit.ui.management.targettag.targettype;
 
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.hawkbit.repository.TargetTypeManagement;
 import org.eclipse.hawkbit.repository.model.DistributionSetType;
@@ -24,8 +25,6 @@ import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTargetType;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyType;
 import org.eclipse.hawkbit.ui.common.targettype.ProxyTargetTypeValidator;
 import org.springframework.util.StringUtils;
-
-import java.util.Set;
 
 /**
  * Controller for update target type window
@@ -73,7 +72,7 @@ public class UpdateTargetTypeWindowController
         dsType.setName(proxyEntity.getName());
         dsType.setDescription(proxyEntity.getDescription());
         dsType.setColour(proxyEntity.getColour());
-        dsType.setSelectedSmTypes(getDsTypesByDsTypeId(proxyEntity.getId()));
+        dsType.setSelectedDsTypes(getDsTypesByDsTypeId(proxyEntity.getId()));
         nameBeforeEdit = proxyEntity.getName();
 
         return dsType;
@@ -95,7 +94,7 @@ public class UpdateTargetTypeWindowController
 
         Set<Long> dsTypesIds = getDsTypesByDsTypeId(entity.getId()).stream().map(ProxyType::getId).collect(Collectors.toSet());
 
-        Set<Long> selectedDsIds = entity.getSelectedSmTypes().stream().map(ProxyType::getId).collect(Collectors.toSet());
+        Set<Long> selectedDsIds = entity.getSelectedDsTypes().stream().map(ProxyType::getId).collect(Collectors.toSet());
 
         Set<Long> dsTypesForRemoval = getDsTypesByDsTypeId(entity.getId()).stream().map(ProxyType::getId)
                 .filter(dsType -> !selectedDsIds.contains(dsType)).collect(Collectors.toSet());
@@ -133,6 +132,4 @@ public class UpdateTargetTypeWindowController
     private boolean hasNamedChanged(final String trimmedName) {
         return !nameBeforeEdit.equals(trimmedName);
     }
-
-
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 Bosch.IO GmbH and others.
+ * Copyright (c) 2021 Bosch.IO GmbH and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -29,7 +29,7 @@ public class AddTargetTypeWindowController
 
     private final TargetTypeWindowLayout layout;
     private final ProxyTargetTypeValidator validator;
-    private TargetTypeManagement targetTypeManagement;
+    private final TargetTypeManagement targetTypeManagement;
 
     /**
      * Constructor for AddTargetTypeWindowController
@@ -65,9 +65,9 @@ public class AddTargetTypeWindowController
         TargetType targetType = targetTypeManagement.create(getEntityFactory().targetType().create()
                 .name(entity.getName()).description(entity.getDescription()).colour(entity.getColour()));
 
-        if (!entity.getSelectedSmTypes().isEmpty()) {
+        if (!entity.getSelectedDsTypes().isEmpty()) {
             targetTypeManagement.assignCompatibleDistributionSetTypes(targetType.getId(),
-                    entity.getSelectedSmTypes().stream().map(ProxyType::getId).collect(Collectors.toSet()));
+                    entity.getSelectedDsTypes().stream().map(ProxyType::getId).collect(Collectors.toSet()));
         }
         return targetType;
     }
