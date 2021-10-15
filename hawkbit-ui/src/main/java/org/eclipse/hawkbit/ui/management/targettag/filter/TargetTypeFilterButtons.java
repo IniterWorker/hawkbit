@@ -27,6 +27,8 @@ import org.eclipse.hawkbit.ui.common.event.EventView;
 import org.eclipse.hawkbit.ui.common.filterlayout.AbstractTargetTypeFilterButtons;
 import org.eclipse.hawkbit.ui.management.targettag.targettype.TargetTypeWindowBuilder;
 import org.eclipse.hawkbit.ui.utils.UIComponentIdProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -34,11 +36,14 @@ import java.util.stream.Collectors;
 /**
  * Target Tag filter buttons table.
  */
+@SuppressWarnings("squid:S2160")
 public class TargetTypeFilterButtons extends AbstractTargetTypeFilterButtons {
     private static final long serialVersionUID = 1L;
 
     private final transient TargetTypeManagement targetTypeManagement;
     private final transient TargetTypeWindowBuilder targetTypeWindowBuilder;
+
+    private static final Logger LOG = LoggerFactory.getLogger(TargetTypeFilterButtons.class);
 
     TargetTypeFilterButtons(final CommonUiDependencies uiDependencies,
                             final TargetTypeManagement targetTypeManagement, final TargetManagement targetManagement, final TargetTagFilterLayoutUiState targetTagFilterLayoutUiState,
@@ -117,6 +122,7 @@ public class TargetTypeFilterButtons extends AbstractTargetTypeFilterButtons {
                             ProxyTargetType.class, tagToDelete.getId()));
             return true;
         } catch (TargetTypeInUseException exception){
+            LOG.trace("Target type already in use exception: {}", exception.getMessage());
             uiNotification.displayValidationError(i18n.getMessage(exception.getMessage()));
         }
 
