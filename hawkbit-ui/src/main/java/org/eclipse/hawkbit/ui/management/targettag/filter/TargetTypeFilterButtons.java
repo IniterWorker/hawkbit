@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Bosch Software Innovations GmbH and others.
+ * Copyright (c) 2021 Bosch.IO GmbH and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -10,8 +10,6 @@ package org.eclipse.hawkbit.ui.management.targettag.filter;
 
 import com.vaadin.ui.UI;
 import com.vaadin.ui.Window;
-import java.util.Collections;
-import java.util.stream.Collectors;
 import org.eclipse.hawkbit.repository.Identifiable;
 import org.eclipse.hawkbit.repository.TargetManagement;
 import org.eclipse.hawkbit.repository.TargetTypeManagement;
@@ -27,12 +25,11 @@ import org.eclipse.hawkbit.ui.common.event.EntityModifiedEventPayload;
 import org.eclipse.hawkbit.ui.common.event.EventTopics;
 import org.eclipse.hawkbit.ui.common.event.EventView;
 import org.eclipse.hawkbit.ui.common.filterlayout.AbstractTargetTypeFilterButtons;
-import org.eclipse.hawkbit.ui.common.grid.support.DragAndDropSupport;
-import org.eclipse.hawkbit.ui.common.grid.support.assignment.TargetsToTargetTypeAssignmentSupport;
 import org.eclipse.hawkbit.ui.management.targettag.targettype.TargetTypeWindowBuilder;
 import org.eclipse.hawkbit.ui.utils.UIComponentIdProvider;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 /**
  * Target Tag filter buttons table.
@@ -51,17 +48,9 @@ public class TargetTypeFilterButtons extends AbstractTargetTypeFilterButtons {
         this.targetTypeManagement = targetTypeManagement;
         this.targetTypeWindowBuilder = targetTypeWindowBuilder;
 
-        final TargetsToTargetTypeAssignmentSupport targetsToTargetTypeAssignment = new TargetsToTargetTypeAssignmentSupport(uiDependencies,
-                targetManagement);
-
-        setDragAndDropSupportSupport(new DragAndDropSupport<>(this, i18n, uiNotification,
-                Collections.singletonMap(UIComponentIdProvider.TARGET_TABLE_ID, targetsToTargetTypeAssignment), eventBus));
-        getDragAndDropSupportSupport().ignoreSelection(true);
-        getDragAndDropSupportSupport().addDragAndDrop();
-
         init();
         setDataProvider(
-                new TargetTypeDataProvider(targetTypeManagement, new TargetTypeToProxyTargetTypeMapper<>()));
+                new TargetTypeDataProvider<>(targetTypeManagement, new TargetTypeToProxyTargetTypeMapper<>()));
     }
 
     @Override
