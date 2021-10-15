@@ -553,4 +553,13 @@ public interface DeploymentManagement {
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_UPDATE_TARGET)
     void cancelActionsForDistributionSet(final CancelationType cancelationType, final DistributionSet set);
 
+    /**
+     * Cancels all actions that refer to a given distribution set. This method is
+     * called when a distribution set is invalidated.
+     *
+     * @param actionId
+     *            of the action that shall be confirmed or declined
+     */
+    @PreAuthorize(SpringEvalExpressions.HAS_AUTH_UPDATE_TARGET)
+    void confirmOrDeclineAction(Long actionId);
 }

@@ -23,6 +23,7 @@ import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadata;
 import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadataBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;
+import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConfirmOrDeclineRemark;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionRequestBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionStatus;
 import org.eclipse.hawkbit.mgmt.json.model.distributionset.MgmtActionType;
@@ -165,7 +166,8 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
     }
 
     @Override
-    public ResponseEntity<Void> assignTargetType(@PathVariable("targetId") final String targetId, @RequestBody final MgmtId targetTypeId) {
+    public ResponseEntity<Void> assignTargetType(@PathVariable("targetId") final String targetId,
+            @RequestBody final MgmtId targetTypeId) {
         this.targetManagement.assignType(targetId, targetTypeId.getId());
         return ResponseEntity.ok().build();
     }
@@ -229,10 +231,8 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
     public ResponseEntity<Void> cancelAction(@PathVariable("targetId") final String targetId,
             @PathVariable("actionId") final Long actionId,
             @RequestParam(value = "force", required = false, defaultValue = "false") final boolean force) {
-        final Action action = deploymentManagement.findAction(actionId)
-                .orElseThrow(() -> new EntityNotFoundException(Action.class, actionId));
 
-        if (!action.getTarget().getControllerId().equals(targetId)) {
+        if (!isActionAssignedToTarget(actionId, targetId)) {
             LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
             return ResponseEntity.notFound().build();
         }
@@ -255,13 +255,10 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
             @RequestParam(value = MgmtRestConstants.REQUEST_PARAMETER_PAGING_LIMIT, defaultValue = MgmtRestConstants.REQUEST_PARAMETER_PAGING_DEFAULT_LIMIT) final int pagingLimitParam,
             @RequestParam(value = MgmtRestConstants.REQUEST_PARAMETER_SORTING, required = false) final String sortParam) {
 
-        final Target target = findTargetWithExceptionIfNotFound(targetId);
+        findTargetWithExceptionIfNotFound(targetId);
 
-        final Action action = deploymentManagement.findAction(actionId)
-                .orElseThrow(() -> new EntityNotFoundException(Action.class, actionId));
-
-        if (!action.getTarget().getId().equals(target.getId())) {
-            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, action.getId(), target.getId());
+        if (!isActionAssignedToTarget(actionId, targetId)) {
+            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
             return ResponseEntity.notFound().build();
         }
 
@@ -270,12 +267,38 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
         final Sort sorting = PagingUtility.sanitizeActionStatusSortParam(sortParam);
 
         final Page<ActionStatus> statusList = this.deploymentManagement.findActionStatusByAction(
-                new OffsetBasedPageRequest(sanitizedOffsetParam, sanitizedLimitParam, sorting), action.getId());
+                new OffsetBasedPageRequest(sanitizedOffsetParam, sanitizedLimitParam, sorting), actionId);
 
         return ResponseEntity.ok(new PagedList<>(
                 MgmtTargetMapper.toActionStatusRestResponse(statusList.getContent(), deploymentManagement),
                 statusList.getTotalElements()));
 
+    }
+
+    @Override
+    public ResponseEntity<Void> confirmAction(final String targetId, final Long actionId,
+            final MgmtActionConfirmOrDeclineRemark remark) {
+
+        if (!isActionAssignedToTarget(actionId, targetId)) {
+            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
+            return ResponseEntity.notFound().build();
+        }
+
+        deploymentManagement.confirmOrDeclineAction(actionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> declineAction(final String targetId, final Long actionId,
+            final MgmtActionConfirmOrDeclineRemark remark) {
+
+        if (!isActionAssignedToTarget(actionId, targetId)) {
+            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
+            return ResponseEntity.notFound().build();
+        }
+
+        deploymentManagement.confirmOrDeclineAction(actionId);
+        return ResponseEntity.ok().build();
     }
 
     @Override
@@ -304,8 +327,8 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
             final List<Entry<String, Long>> offlineAssignments = dsAssignments.stream()
                     .map(dsAssignment -> new SimpleEntry<String, Long>(targetId, dsAssignment.getId()))
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(MgmtDistributionSetMapper.toResponse(
-                    deploymentManagement.offlineAssignedDistributionSets(offlineAssignments)));
+            return ResponseEntity.ok(MgmtDistributionSetMapper
+                    .toResponse(deploymentManagement.offlineAssignedDistributionSets(offlineAssignments)));
         }
         findTargetWithExceptionIfNotFound(targetId);
 
@@ -345,10 +368,8 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
     public ResponseEntity<MgmtAction> updateAction(@PathVariable("targetId") final String targetId,
             @PathVariable("actionId") final Long actionId, @RequestBody final MgmtActionRequestBodyPut actionUpdate) {
 
-        Action action = deploymentManagement.findAction(actionId)
-                .orElseThrow(() -> new EntityNotFoundException(Action.class, actionId));
-        if (!action.getTarget().getControllerId().equals(targetId)) {
-            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, action.getId(), targetId);
+        if (!isActionAssignedToTarget(actionId, targetId)) {
+            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
             return ResponseEntity.notFound().build();
         }
 
@@ -356,9 +377,16 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
             throw new ValidationException("Resource supports only switch to FORCED.");
         }
 
-        action = deploymentManagement.forceTargetAction(actionId);
+        final Action action = deploymentManagement.forceTargetAction(actionId);
 
         return ResponseEntity.ok(MgmtTargetMapper.toResponseWithLinks(targetId, action));
+    }
+
+    private boolean isActionAssignedToTarget(final Long actionId, final String controllerId) {
+        final Action action = deploymentManagement.findAction(actionId)
+                .orElseThrow(() -> new EntityNotFoundException(Action.class, actionId));
+
+        return action.getTarget().getControllerId().equals(controllerId);
     }
 
     @Override

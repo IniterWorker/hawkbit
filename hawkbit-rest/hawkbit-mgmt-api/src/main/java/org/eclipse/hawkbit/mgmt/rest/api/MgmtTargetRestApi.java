@@ -15,6 +15,7 @@ import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadata;
 import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadataBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;
+import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConfirmOrDeclineRemark;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionRequestBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionStatus;
 import org.eclipse.hawkbit.mgmt.json.model.distributionset.MgmtDistributionSet;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -54,11 +56,11 @@ public interface MgmtTargetRestApi {
      * Handles the GET request of retrieving all targets.
      *
      * @param pagingOffsetParam
-     *            the offset of list of targets for pagination, might not be
-     *            present in the rest request then default value will be applied
+     *            the offset of list of targets for pagination, might not be present
+     *            in the rest request then default value will be applied
      * @param pagingLimitParam
-     *            the limit of the paged request, might not be present in the
-     *            rest request then default value will be applied
+     *            the limit of the paged request, might not be present in the rest
+     *            request then default value will be applied
      * @param sortParam
      *            the sorting parameter in the request URL, syntax
      *            {@code field:direction, field:direction}
@@ -83,26 +85,24 @@ public interface MgmtTargetRestApi {
      *
      * @param targets
      *            the targets to be created.
-     * @return In case all targets could successful created the ResponseEntity
-     *         with status code 201 with a list of successfully created
-     *         entities. In any failure the JsonResponseExceptionHandler is
-     *         handling the response.
+     * @return In case all targets could successful created the ResponseEntity with
+     *         status code 201 with a list of successfully created entities. In any
+     *         failure the JsonResponseExceptionHandler is handling the response.
      */
     @PostMapping(consumes = { MediaTypes.HAL_JSON_VALUE, MediaType.APPLICATION_JSON_VALUE }, produces = {
             MediaTypes.HAL_JSON_VALUE, MediaType.APPLICATION_JSON_VALUE })
     ResponseEntity<List<MgmtTarget>> createTargets(List<MgmtTargetRequestBody> targets);
 
     /**
-     * Handles the PUT request of updating a target. The ID is within the URL
-     * path of the request. A given ID in the request body is ignored. It's not
-     * possible to set fields to {@code null} values.
+     * Handles the PUT request of updating a target. The ID is within the URL path
+     * of the request. A given ID in the request body is ignored. It's not possible
+     * to set fields to {@code null} values.
      *
      * @param targetId
      *            the path parameter which contains the ID of the target
      * @param targetRest
      *            the request body which contains the fields which should be
-     *            updated, fields which are not given are ignored for the
-     *            udpate.
+     *            updated, fields which are not given are ignored for the udpate.
      * @return the updated target response which contains all fields also fields
      *         which have not updated
      */
@@ -117,8 +117,8 @@ public interface MgmtTargetRestApi {
      *
      * @param targetId
      *            the ID of the target to be deleted
-     * @return If the given targetId could exists and could be deleted Http OK.
-     *         In any failure the JsonResponseExceptionHandler is handling the
+     * @return If the given targetId could exists and could be deleted Http OK. In
+     *         any failure the JsonResponseExceptionHandler is handling the
      *         response.
      */
     @DeleteMapping(value = "/{targetId}")
@@ -129,8 +129,8 @@ public interface MgmtTargetRestApi {
      *
      * @param targetId
      *            the ID of the target
-     * @return If the given targetId could exists and could be unassign Http OK.
-     *         In any failure the JsonResponseExceptionHandler is handling the
+     * @return If the given targetId could exists and could be unassign Http OK. In
+     *         any failure the JsonResponseExceptionHandler is handling the
      *         response.
      */
     @DeleteMapping(value = MgmtRestConstants.TARGET_TARGET_TYPE_V1_REQUEST_MAPPING)
@@ -141,17 +141,16 @@ public interface MgmtTargetRestApi {
      *
      * @param targetId
      *            the ID of the target
-     * @return If the given targetId could exists and could be assign Http OK.
-     *         In any failure the JsonResponseExceptionHandler is handling the
+     * @return If the given targetId could exists and could be assign Http OK. In
+     *         any failure the JsonResponseExceptionHandler is handling the
      *         response.
      */
-    @PostMapping(value = MgmtRestConstants.TARGET_TARGET_TYPE_V1_REQUEST_MAPPING, consumes = { MediaTypes.HAL_JSON_VALUE,
-            MediaType.APPLICATION_JSON_VALUE })
+    @PostMapping(value = MgmtRestConstants.TARGET_TARGET_TYPE_V1_REQUEST_MAPPING, consumes = {
+            MediaTypes.HAL_JSON_VALUE, MediaType.APPLICATION_JSON_VALUE })
     ResponseEntity<Void> assignTargetType(@PathVariable("targetId") String targetId, MgmtId targetTypeId);
 
     /**
-     * Handles the GET request of retrieving the attributes of a specific
-     * target.
+     * Handles the GET request of retrieving the attributes of a specific target.
      *
      * @param targetId
      *            the ID of the target to retrieve the attributes.
@@ -167,11 +166,11 @@ public interface MgmtTargetRestApi {
      * @param targetId
      *            to load actions for
      * @param pagingOffsetParam
-     *            the offset of list of targets for pagination, might not be
-     *            present in the rest request then default value will be applied
+     *            the offset of list of targets for pagination, might not be present
+     *            in the rest request then default value will be applied
      * @param pagingLimitParam
-     *            the limit of the paged request, might not be present in the
-     *            rest request then default value will be applied
+     *            the limit of the paged request, might not be present in the rest
+     *            request then default value will be applied
      * @param sortParam
      *            the sorting parameter in the request URL, syntax
      *            {@code field:direction, field:direction}
@@ -240,24 +239,24 @@ public interface MgmtTargetRestApi {
             @PathVariable("actionId") Long actionId, MgmtActionRequestBodyPut actionUpdate);
 
     /**
-     * Handles the GET request of retrieving the ActionStatus of a specific
-     * target and action.
+     * Handles the GET request of retrieving the ActionStatus of a specific target
+     * and action.
      *
      * @param targetId
      *            of the the action
      * @param actionId
      *            of the status we are intend to load
      * @param pagingOffsetParam
-     *            the offset of list of targets for pagination, might not be
-     *            present in the rest request then default value will be applied
+     *            the offset of list of targets for pagination, might not be present
+     *            in the rest request then default value will be applied
      * @param pagingLimitParam
-     *            the limit of the paged request, might not be present in the
-     *            rest request then default value will be applied
+     *            the limit of the paged request, might not be present in the rest
+     *            request then default value will be applied
      * @param sortParam
      *            the sorting parameter in the request URL, syntax
      *            {@code field:direction, field:direction}
-     * @return a list of all ActionStatus for a defined or default page request
-     *         with status OK. The response is always paged. In any failure the
+     * @return a list of all ActionStatus for a defined or default page request with
+     *         status OK. The response is always paged. In any failure the
      *         JsonResponseExceptionHandler is handling the response.
      */
     @GetMapping(value = "/{targetId}/actions/{actionId}/status", produces = { MediaTypes.HAL_JSON_VALUE,
@@ -267,6 +266,32 @@ public interface MgmtTargetRestApi {
             @RequestParam(value = MgmtRestConstants.REQUEST_PARAMETER_PAGING_OFFSET, defaultValue = MgmtRestConstants.REQUEST_PARAMETER_PAGING_DEFAULT_OFFSET) int pagingOffsetParam,
             @RequestParam(value = MgmtRestConstants.REQUEST_PARAMETER_PAGING_LIMIT, defaultValue = MgmtRestConstants.REQUEST_PARAMETER_PAGING_DEFAULT_LIMIT) int pagingLimitParam,
             @RequestParam(value = MgmtRestConstants.REQUEST_PARAMETER_SORTING, required = false) String sortParam);
+
+    /**
+     * Handles the POST request to confirm an update action of a specific target
+     *
+     * @param targetId
+     *            of the action
+     * @param actionId
+     *            of the action to confirm
+     */
+    @PostMapping(value = "/{targetId}/actions/{actionId}/confirm")
+    ResponseEntity<Void> confirmAction(@PathVariable("targetId") String targetId,
+            @PathVariable("actionId") Long actionId,
+            @RequestBody(required = false) MgmtActionConfirmOrDeclineRemark remark);
+
+    /**
+     * Handles the POST request to decline an update action of a specific target
+     *
+     * @param targetId
+     *            of the action
+     * @param actionId
+     *            of the action to decline
+     */
+    @PostMapping(value = "/{targetId}/actions/{actionId}/decline")
+    ResponseEntity<Void> declineAction(@PathVariable("targetId") String targetId,
+            @PathVariable("actionId") Long actionId,
+            @RequestBody(required = false) MgmtActionConfirmOrDeclineRemark remark);
 
     /**
      * Handles the GET request of retrieving the assigned distribution set of an
@@ -305,13 +330,13 @@ public interface MgmtTargetRestApi {
             @RequestParam(value = "offline", required = false) boolean offline);
 
     /**
-     * Handles the GET request of retrieving the installed distribution set of
-     * an specific target.
+     * Handles the GET request of retrieving the installed distribution set of an
+     * specific target.
      *
      * @param targetId
      *            the ID of the target to retrieve
-     * @return the assigned installed set with status OK, if none is installed
-     *         than {@code null} content (e.g. "{}")
+     * @return the assigned installed set with status OK, if none is installed than
+     *         {@code null} content (e.g. "{}")
      */
     @GetMapping(value = "/{targetId}/installedDS", produces = { MediaTypes.HAL_JSON_VALUE,
             MediaType.APPLICATION_JSON_VALUE })
@@ -323,19 +348,18 @@ public interface MgmtTargetRestApi {
      * @param targetId
      *            the ID of the target for the meta data
      * @param pagingOffsetParam
-     *            the offset of list of targets for pagination, might not be
-     *            present in the rest request then default value will be applied
+     *            the offset of list of targets for pagination, might not be present
+     *            in the rest request then default value will be applied
      * @param pagingLimitParam
-     *            the limit of the paged request, might not be present in the
-     *            rest request then default value will be applied
+     *            the limit of the paged request, might not be present in the rest
+     *            request then default value will be applied
      * @param sortParam
      *            the sorting parameter in the request URL, syntax
      *            {@code field:direction, field:direction}
      * @param rsqlParam
-     *            the search parameter in the request URL, syntax
-     *            {@code q=key==abc}
-     * @return status OK if get request is successful with the paged list of
-     *         meta data
+     *            the search parameter in the request URL, syntax {@code q=key==abc}
+     * @return status OK if get request is successful with the paged list of meta
+     *         data
      */
     @GetMapping(value = "/{targetId}/metadata", produces = { MediaTypes.HAL_JSON_VALUE,
             MediaType.APPLICATION_JSON_VALUE })
@@ -368,8 +392,8 @@ public interface MgmtTargetRestApi {
      *            the key of the meta data to update the value
      * @param metadata
      *            update body
-     * @return status OK if the update request is successful and the updated
-     *         meta data result
+     * @return status OK if the update request is successful and the updated meta
+     *         data result
      */
     @PutMapping(value = "/{targetId}/metadata/{metadataKey}", produces = { MediaTypes.HAL_JSON_VALUE,
             MediaType.APPLICATION_JSON_VALUE })
@@ -396,8 +420,8 @@ public interface MgmtTargetRestApi {
      *            the ID of the targetId to create meta data for
      * @param metadataRest
      *            the list of meta data entries to create
-     * @return status created if post request is successful with the value of
-     *         the created meta data
+     * @return status created if post request is successful with the value of the
+     *         created meta data
      */
     @PostMapping(value = "/{targetId}/metadata", consumes = { MediaType.APPLICATION_JSON_VALUE,
             MediaTypes.HAL_JSON_VALUE }, produces = { MediaTypes.HAL_JSON_VALUE, MediaType.APPLICATION_JSON_VALUE })
