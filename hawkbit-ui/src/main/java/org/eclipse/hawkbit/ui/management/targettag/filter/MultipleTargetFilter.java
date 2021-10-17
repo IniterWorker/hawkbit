@@ -101,8 +101,7 @@ public class MultipleTargetFilter extends Accordion {
         this.targetTypeGridActionsVisibilityListener = new GridActionsVisibilityListener(eventBus, layoutViewAware,
                 targetTypeFilterButtons::hideActionColumns, targetTypeFilterButtons::showEditColumn, targetTypeFilterButtons::showDeleteColumn);
         this.entityTargetTypeModifiedListener = new EntityModifiedListener.Builder<>(eventBus, ProxyTargetType.class)
-                .parentEntityType(ProxyTarget.class).viewAware(layoutViewAware)
-                .entityModifiedAwareSupports(getTargetTypeModifiedAwareSupports()).build();
+                .viewAware(layoutViewAware).entityModifiedAwareSupports(getTargetTypeModifiedAwareSupports()).build();
 
         init();
         addTabs();

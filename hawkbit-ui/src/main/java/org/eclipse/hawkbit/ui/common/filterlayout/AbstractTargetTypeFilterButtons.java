@@ -9,11 +9,9 @@
 package org.eclipse.hawkbit.ui.common.filterlayout;
 
 import com.vaadin.ui.Button;
-import com.vaadin.ui.Window;
 import org.eclipse.hawkbit.repository.TargetTypeManagement;
 import org.eclipse.hawkbit.ui.common.CommonUiDependencies;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyIdentifiableEntity;
-import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTag;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTarget;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTargetType;
 import org.eclipse.hawkbit.ui.common.event.EventTopics;
@@ -152,15 +150,6 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
      * @return true if delete target type has no exception
      */
     protected abstract boolean deleteTargetTypeTag(final ProxyTargetType tagToDelete);
-
-    /**
-     * Provides the window for updating tag
-     *
-     * @param clickedFilter
-     *            tag to update
-     * @return update window
-     */
-    protected abstract Window getUpdateWindow(final ProxyTag clickedFilter);
 
     @Override
     public void restoreState() {

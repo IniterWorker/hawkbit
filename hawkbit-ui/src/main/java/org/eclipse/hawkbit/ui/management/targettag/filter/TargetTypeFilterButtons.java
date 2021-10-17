@@ -130,11 +130,6 @@ public class TargetTypeFilterButtons extends AbstractTargetTypeFilterButtons {
     }
 
     @Override
-    protected Window getUpdateWindow(ProxyTag clickedFilter) {
-        return null;
-    }
-
-    @Override
     protected Collection<Long> filterExistingTagIds(Collection<Long> tagIds) {
         return targetTypeManagement.get(tagIds).stream().map(Identifiable::getId).collect(Collectors.toSet());
     }
