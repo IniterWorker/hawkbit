@@ -80,7 +80,7 @@ public class UpdateTargetTypeWindowController
     }
 
     private Set<ProxyType> getDsTypesByDsTypeId(final Long id) {
-        Optional<TargetType> targetType = targetTypeManagement.findByTargetId(id);
+        Optional<TargetType> targetType = targetTypeManagement.get(id);
         return targetType.map(type -> type.getCompatibleDistributionSetTypes().stream()
                 .map(dsTypeToProxyTypeMapper::map).collect(Collectors.toSet())).orElse(Collections.emptySet());
 
