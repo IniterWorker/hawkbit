@@ -109,8 +109,6 @@ public class JpaTargetManagement implements TargetManagement {
 
     private final RolloutGroupRepository rolloutGroupRepository;
 
-    private final DistributionSetRepository distributionSetRepository;
-
     private final TargetFilterQueryRepository targetFilterQueryRepository;
 
     private final TargetTagRepository targetTagRepository;
@@ -130,7 +128,6 @@ public class JpaTargetManagement implements TargetManagement {
             final TargetRepository targetRepository, final TargetTypeRepository targetTypeRepository,
             final TargetMetadataRepository targetMetadataRepository,
             final RolloutGroupRepository rolloutGroupRepository,
-            final DistributionSetRepository distributionSetRepository,
             final TargetFilterQueryRepository targetFilterQueryRepository,
             final TargetTagRepository targetTagRepository, final EventPublisherHolder eventPublisherHolder,
             final TenantAware tenantAware, final AfterTransactionCommitExecutor afterCommit,
@@ -142,7 +139,6 @@ public class JpaTargetManagement implements TargetManagement {
         this.targetTypeRepository = targetTypeRepository;
         this.targetMetadataRepository = targetMetadataRepository;
         this.rolloutGroupRepository = rolloutGroupRepository;
-        this.distributionSetRepository = distributionSetRepository;
         this.targetFilterQueryRepository = targetFilterQueryRepository;
         this.targetTagRepository = targetTagRepository;
         this.eventPublisherHolder = eventPublisherHolder;
@@ -421,12 +417,6 @@ public class JpaTargetManagement implements TargetManagement {
                 pageReq);
     }
 
-    private void throwEntityNotFoundIfDsDoesNotExist(final Long distributionSetID) {
-        if (!distributionSetRepository.existsById(distributionSetID)) {
-            throw new EntityNotFoundException(DistributionSet.class, distributionSetID);
-        }
-    }
-
     public static Page<Target> convertPage(final Page<JpaTarget> findAll, final Pageable pageable) {
         return new PageImpl<>(Collections.unmodifiableList(findAll.getContent()), pageable, findAll.getTotalElements());
     }
@@ -633,7 +623,6 @@ public class JpaTargetManagement implements TargetManagement {
 
     private List<JpaTarget> findTargetsByInSpecification(Collection<String> controllerIds,
             Specification<JpaTarget> specification) {
-        //TODO: check the Lists import is needed ot not
         return Lists.partition(new ArrayList<>(controllerIds), Constants.MAX_ENTRIES_IN_STATEMENT).stream()
                 .map(ids -> targetRepository.findAll(specification)).flatMap(List::stream).collect(Collectors.toList());
     }
