@@ -86,8 +86,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
-import com.google.common.collect.Lists;
-
 /**
  * JPA implementation of {@link TargetManagement}.
  *
@@ -596,7 +594,7 @@ public class JpaTargetManagement implements TargetManagement {
                 TargetSpecifications.hasTargetType(typeId).and(TargetSpecifications.hasControllerIdIn(controllerIds)));
 
         final List<JpaTarget> targetsWithoutSameType = findTargetsByInSpecification(controllerIds,
-                TargetSpecifications.hasNotTargetType(typeId).and(TargetSpecifications.hasControllerIdIn(controllerIds)));
+                TargetSpecifications.hasNoTargetType(typeId).and(TargetSpecifications.hasControllerIdIn(controllerIds)));
 
         // set new target type to all targets without that type
         targetsWithoutSameType.forEach(target -> target.setTargetType(type));
@@ -632,6 +630,7 @@ public class JpaTargetManagement implements TargetManagement {
 
     private List<JpaTarget> findTargetsByInSpecification(Collection<String> controllerIds,
             Specification<JpaTarget> specification) {
+        //TODO: check the Lists import is needed ot not
         return Lists.partition(new ArrayList<>(controllerIds), Constants.MAX_ENTRIES_IN_STATEMENT).stream()
                 .map(ids -> targetRepository.findAll(specification)).flatMap(List::stream).collect(Collectors.toList());
     }

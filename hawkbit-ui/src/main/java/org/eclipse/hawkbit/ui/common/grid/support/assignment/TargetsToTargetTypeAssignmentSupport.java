@@ -61,7 +61,7 @@ public class TargetsToTargetTypeAssignmentSupport extends AbstractTargetsToTarge
     private boolean isAssignmentValid(List<ProxyTarget> sourceItemsToAssign, ProxyTargetType targetItem) {
         if(sourceItemsToAssign.size() > 1) {
             List<ProxyTarget> targetsWithDifferentType = sourceItemsToAssign.stream().filter(
-                            target -> target.getTargetType() != null && !target.getTargetType().getId().equals(targetItem.getId()))
+                            target -> target.getTypeInfo() != null && !target.getTypeInfo().getId().equals(targetItem.getId()))
                     .collect(Collectors.toList());
 
             if (!targetsWithDifferentType.isEmpty()) {

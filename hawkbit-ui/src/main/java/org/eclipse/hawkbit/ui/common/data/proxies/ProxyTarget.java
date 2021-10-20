@@ -41,9 +41,6 @@ public class ProxyTarget extends ProxyNamedEntity implements TypeInfoAware {
 
     private boolean isRequestAttributes;
 
-    //TODO: check it
-    private TargetType targetType;
-
     private ProxyTypeInfo typeInfo;
 
     /**
@@ -213,16 +210,6 @@ public class ProxyTarget extends ProxyNamedEntity implements TypeInfoAware {
     public void setRequestAttributes(final boolean isRequestAttributes) {
         this.isRequestAttributes = isRequestAttributes;
     }
-
-    //TODO: Check it
-    public TargetType getTargetType() {
-        return targetType;
-    }
-
-    public void setTargetType(TargetType targetType) {
-        this.targetType = targetType;
-    }
-
 
     @Override
     public void setTypeInfo(ProxyTypeInfo typeInfo) {

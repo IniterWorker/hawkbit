@@ -499,7 +499,7 @@ public final class TargetSpecifications {
      *
      * @return the {@link Target} {@link Specification}
      */
-    public static Specification<JpaTarget> hasNotTargetType(final Long typeId) {
+    public static Specification<JpaTarget> hasNoTargetType(final Long typeId) {
         return (targetRoot, query, cb) -> {
             final Predicate typeIsNull = targetRoot.get(JpaTarget_.targetType).isNull();
             final Join<JpaTarget, JpaTargetType> types = targetRoot.join(JpaTarget_.targetType, JoinType.LEFT);
