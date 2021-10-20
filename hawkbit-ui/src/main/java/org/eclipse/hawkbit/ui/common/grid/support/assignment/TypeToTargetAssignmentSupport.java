@@ -61,8 +61,8 @@ public class TypeToTargetAssignmentSupport  extends AssignmentSupport<ProxyTarge
         final Long typeId = sourceItemsToAssign.get(0).getId();
         TargetTypeAssignmentResult targetTypeAssignmentResult = initiateTargetTypeAssignment(typeId, controllerId);
 
-        final String assignmentMsg = createAssignmentMessage(targetTypeAssignmentResult, i18n.getMessage(CAPTION_TYPE),
-                i18n.getMessage(CAPTION_TARGET), targetItem.getName());
+        final String assignmentMsg = createAssignmentMessage(targetTypeAssignmentResult, i18n.getMessage(CAPTION_TARGET),
+                i18n.getMessage(CAPTION_TYPE), sourceItemsToAssign.get(0).getName());
         notification.displaySuccess(assignmentMsg);
 
         publishTypeAssignmentEvent(sourceItemsToAssign);
