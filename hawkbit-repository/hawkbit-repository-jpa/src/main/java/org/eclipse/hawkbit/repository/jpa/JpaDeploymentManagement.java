@@ -955,4 +955,11 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
             });
         }
     }
+
+    @Override
+    public void confirmOrDeclineAction(final Long actionId, final boolean isConfirmed, final String remark) {
+        final JpaAction action = actionRepository.findById(actionId)
+                .orElseThrow(() -> new EntityNotFoundException(Action.class, actionId));
+
+    }
 }

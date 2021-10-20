@@ -65,15 +65,15 @@ public interface DeploymentManagement {
      *             defined by the {@link DistributionSetType}.
      *
      * @throws EntityNotFoundException
-     *             if either provided {@link DistributionSet} or {@link Target}s
-     *             do not exist
+     *             if either provided {@link DistributionSet} or {@link Target}s do
+     *             not exist
      *
      * @throws AssignmentQuotaExceededException
      *             if the maximum number of targets the distribution set can be
      *             assigned to at once is exceeded
      * @throws MultiAssignmentIsNotEnabledException
-     *             if the request results in multiple assignments to the same
-     *             target and multiassignment is disabled
+     *             if the request results in multiple assignments to the same target
+     *             and multiassignment is disabled
      *
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_READ_REPOSITORY_AND_UPDATE_TARGET)
@@ -98,15 +98,15 @@ public interface DeploymentManagement {
      *             defined by the {@link DistributionSetType}.
      *
      * @throws EntityNotFoundException
-     *             if either provided {@link DistributionSet} or {@link Target}s
-     *             do not exist
+     *             if either provided {@link DistributionSet} or {@link Target}s do
+     *             not exist
      *
      * @throws AssignmentQuotaExceededException
      *             if the maximum number of targets the distribution set can be
      *             assigned to at once is exceeded
      * @throws MultiAssignmentIsNotEnabledException
-     *             if the request results in multiple assignments to the same
-     *             target and multiassignment is disabled
+     *             if the request results in multiple assignments to the same target
+     *             and multiassignment is disabled
      *
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_READ_REPOSITORY_AND_UPDATE_TARGET)
@@ -114,8 +114,7 @@ public interface DeploymentManagement {
             @Valid @NotEmpty List<DeploymentRequest> deploymentRequests, String actionMessage);
 
     /**
-     * build a {@link DeploymentRequest} for a target distribution set
-     * assignment
+     * build a {@link DeploymentRequest} for a target distribution set assignment
      *
      * @param controllerId
      *            ID of target
@@ -137,14 +136,14 @@ public interface DeploymentManagement {
      * <li>it ignores targets completely that are in
      * {@link TargetUpdateStatus#PENDING}.</li>
      * <li>it creates completed actions.</li>
-     * <li>sets both installed and assigned DS on the target and switches the
-     * status to {@link TargetUpdateStatus#IN_SYNC}.</li>
+     * <li>sets both installed and assigned DS on the target and switches the status
+     * to {@link TargetUpdateStatus#IN_SYNC}.</li>
      * <li>does not send a {@link TargetAssignDistributionSetEvent}.</li>
      * </ol>
      *
      * @param assignments
-     *            target IDs with the respective distribution set ID which they
-     *            are supposed to be assigned to
+     *            target IDs with the respective distribution set ID which they are
+     *            supposed to be assigned to
      * @return the assignment results
      *
      * @throws IncompleteDistributionSetException
@@ -152,24 +151,24 @@ public interface DeploymentManagement {
      *             defined by the {@link DistributionSetType}.
      *
      * @throws EntityNotFoundException
-     *             if either provided {@link DistributionSet} or {@link Target}s
-     *             do not exist
+     *             if either provided {@link DistributionSet} or {@link Target}s do
+     *             not exist
      *
      * @throws AssignmentQuotaExceededException
      *             if the maximum number of targets the distribution set can be
      *             assigned to at once is exceeded
      *
      * @throws MultiAssignmentIsNotEnabledException
-     *             if the request results in multiple assignments to the same
-     *             target and multiassignment is disabled
+     *             if the request results in multiple assignments to the same target
+     *             and multiassignment is disabled
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_READ_REPOSITORY_AND_UPDATE_TARGET)
     List<DistributionSetAssignmentResult> offlineAssignedDistributionSets(Collection<Entry<String, Long>> assignments);
 
     /**
-     * Cancels the {@link Action} with the given ID. The method will immediately
-     * add a {@link Status#CANCELED} status to the action. However, it might be
-     * possible that the controller will continue to work on the cancellation.
+     * Cancels the {@link Action} with the given ID. The method will immediately add
+     * a {@link Status#CANCELED} status to the action. However, it might be possible
+     * that the controller will continue to work on the cancellation.
      *
      * @param actionId
      *            to be canceled
@@ -241,8 +240,8 @@ public interface DeploymentManagement {
     long countActionsByDistributionSetIdAndActiveIsTrue(Long distributionSet);
 
     /**
-     * Counts all active {@link Action}s referring to the given DistributionSet
-     * that are not in a given state.
+     * Counts all active {@link Action}s referring to the given DistributionSet that
+     * are not in a given state.
      *
      * @param distributionSet
      *            DistributionSet to count the {@link Action}s from
@@ -281,8 +280,8 @@ public interface DeploymentManagement {
      * @param pageable
      *            the page request parameter for paging and sorting the result
      * @param distributionSetId
-     *            the distribution set which should be assigned to the actions
-     *            in the result
+     *            the distribution set which should be assigned to the actions in
+     *            the result
      * @return a list of {@link Action} which are assigned to a specific
      *         {@link DistributionSet}
      *
@@ -316,8 +315,7 @@ public interface DeploymentManagement {
             @NotNull Pageable pageable);
 
     /**
-     * Retrieves all {@link Action}s which are referring the given
-     * {@link Target}.
+     * Retrieves all {@link Action}s which are referring the given {@link Target}.
      *
      * @param controllerId
      *            the target to find actions for
@@ -330,8 +328,8 @@ public interface DeploymentManagement {
     Slice<Action> findActionsByTarget(@NotEmpty String controllerId, @NotNull Pageable pageable);
 
     /**
-     * Retrieves all the {@link ActionStatus} entries of the given
-     * {@link Action} and {@link Target}.
+     * Retrieves all the {@link ActionStatus} entries of the given {@link Action}
+     * and {@link Target}.
      *
      * @param pageReq
      *            pagination parameter
@@ -400,8 +398,8 @@ public interface DeploymentManagement {
     Page<Action> findInActiveActionsByTarget(@NotNull Pageable pageable, @NotEmpty String controllerId);
 
     /**
-     * Retrieves active {@link Action}s with highest weight that are assigned to
-     * a {@link Target}.
+     * Retrieves active {@link Action}s with highest weight that are assigned to a
+     * {@link Target}.
      *
      * @param controllerId
      *            identifies the target to retrieve the action from
@@ -424,10 +422,10 @@ public interface DeploymentManagement {
     int getWeightConsideringDefault(final Action action);
 
     /**
-     * Force cancels given {@link Action} for given {@link Target}. Force
-     * canceling means that the action is marked as canceled on the SP server
-     * and a cancel request is sent to the target. But however it's not tracked,
-     * if the targets handles the cancel request or not.
+     * Force cancels given {@link Action} for given {@link Target}. Force canceling
+     * means that the action is marked as canceled on the SP server and a cancel
+     * request is sent to the target. But however it's not tracked, if the targets
+     * handles the cancel request or not.
      *
      * @param actionId
      *            to be canceled
@@ -444,8 +442,8 @@ public interface DeploymentManagement {
     Action forceQuitAction(long actionId);
 
     /**
-     * Updates a {@link Action} and forces the {@link Action} if it's not
-     * already forced.
+     * Updates a {@link Action} and forces the {@link Action} if it's not already
+     * forced.
      *
      * @param actionId
      *            the ID of the action
@@ -504,8 +502,7 @@ public interface DeploymentManagement {
     Optional<DistributionSet> getAssignedDistributionSet(@NotEmpty String controllerId);
 
     /**
-     * Returns {@link DistributionSet} that is installed on given
-     * {@link Target}.
+     * Returns {@link DistributionSet} that is installed on given {@link Target}.
      *
      * @param controllerId
      *            of target
@@ -517,8 +514,8 @@ public interface DeploymentManagement {
     Optional<DistributionSet> getInstalledDistributionSet(@NotEmpty String controllerId);
 
     /**
-     * Deletes actions which match one of the given action status and which have
-     * not been modified since the given (absolute) time-stamp.
+     * Deletes actions which match one of the given action status and which have not
+     * been modified since the given (absolute) time-stamp.
      *
      * @param status
      *            Set of action status.
@@ -531,8 +528,8 @@ public interface DeploymentManagement {
     int deleteActionsByStatusAndLastModifiedBefore(@NotNull Set<Action.Status> status, long lastModified);
 
     /**
-     * Checks if there is an action for the device with the given controller ID
-     * that is in the {@link Action.Status#CANCELING} state.
+     * Checks if there is an action for the device with the given controller ID that
+     * is in the {@link Action.Status#CANCELING} state.
      *
      * @param controllerId
      *            of target
@@ -542,8 +539,8 @@ public interface DeploymentManagement {
     boolean hasPendingCancellations(@NotEmpty String controllerId);
 
     /**
-     * Cancels all actions that refer to a given distribution set. This method
-     * is called when a distribution set is invalidated.
+     * Cancels all actions that refer to a given distribution set. This method is
+     * called when a distribution set is invalidated.
      *
      * @param cancelationType
      *            defines if a force or soft cancel is executed
@@ -559,7 +556,11 @@ public interface DeploymentManagement {
      *
      * @param actionId
      *            of the action that shall be confirmed or declined
+     * @param isConfirmed
+     *            flag if action is confirmed or declined
+     * @param remark
+     *            optional remark on decision
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_UPDATE_TARGET)
-    void confirmOrDeclineAction(Long actionId);
+    void confirmOrDeclineAction(final Long actionId, final boolean isConfirmed, final String remark);
 }

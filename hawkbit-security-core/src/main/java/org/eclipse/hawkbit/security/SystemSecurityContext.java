@@ -17,8 +17,8 @@ import java.util.concurrent.Callable;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
-import org.eclipse.hawkbit.im.authentication.TenantAwareAuthenticationDetails;
 import org.eclipse.hawkbit.im.authentication.SpPermission.SpringEvalExpressions;
+import org.eclipse.hawkbit.im.authentication.TenantAwareAuthenticationDetails;
 import org.eclipse.hawkbit.tenancy.TenantAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +51,14 @@ public class SystemSecurityContext {
 
     /**
      * Runs a given {@link Callable} within a system security context, which is
-     * permitted to call secured system code. Often the system needs to call
-     * secured methods by it's own without relying on the current security
-     * context e.g. if the current security context does not contain the
-     * necessary permission it's necessary to execute code as system code to
-     * execute necessary methods and functionality.
+     * permitted to call secured system code. Often the system needs to call secured
+     * methods by it's own without relying on the current security context e.g. if
+     * the current security context does not contain the necessary permission it's
+     * necessary to execute code as system code to execute necessary methods and
+     * functionality.
      * 
-     * The security context will be switched to the system code and back after
-     * the callable is called.
+     * The security context will be switched to the system code and back after the
+     * callable is called.
      * 
      * The system code is executed for a current tenant by using the
      * {@link TenantAware#getCurrentTenant()}.
@@ -75,14 +75,14 @@ public class SystemSecurityContext {
 
     /**
      * Runs a given {@link Callable} within a system security context, which is
-     * permitted to call secured system code. Often the system needs to call
-     * secured methods by it's own without relying on the current security
-     * context e.g. if the current security context does not contain the
-     * necessary permission it's necessary to execute code as system code to
-     * execute necessary methods and functionality.
+     * permitted to call secured system code. Often the system needs to call secured
+     * methods by it's own without relying on the current security context e.g. if
+     * the current security context does not contain the necessary permission it's
+     * necessary to execute code as system code to execute necessary methods and
+     * functionality.
      * 
-     * The security context will be switched to the system code and back after
-     * the callable is called.
+     * The security context will be switched to the system code and back after the
+     * callable is called.
      * 
      * The system code is executed for a specific given tenant by using the
      * {@link TenantAware}.
@@ -118,12 +118,11 @@ public class SystemSecurityContext {
     }
 
     /**
-     * Runs a given {@link Callable} within a system security context, which has
-     * the provided {@link GrantedAuthority}s to successfully run the
-     * {@link Callable}.
+     * Runs a given {@link Callable} within a system security context, which has the
+     * provided {@link GrantedAuthority}s to successfully run the {@link Callable}.
      * 
-     * The security context will be switched to the a new
-     * {@link SecurityContext} and back after the callable is called.
+     * The security context will be switched to the a new {@link SecurityContext}
+     * and back after the callable is called.
      * 
      * @param tenant
      *            under which the {@link Callable#call()} must be executed.
@@ -135,7 +134,30 @@ public class SystemSecurityContext {
     @SuppressWarnings({ "squid:S2221", "squid:S00112" })
     public <T> T runAsControllerAsTenant(@NotEmpty final String tenant, @NotNull final Callable<T> callable) {
         final SecurityContext oldContext = SecurityContextHolder.getContext();
-        List<SimpleGrantedAuthority> authorities = Collections
+        final List<SimpleGrantedAuthority> authorities = Collections
+                .singletonList(new SimpleGrantedAuthority(SpringEvalExpressions.CONTROLLER_ROLE_ANONYMOUS));
+        try {
+            return tenantAware.runAsTenant(tenant, () -> {
+                try {
+                    setCustomSecurityContext(tenant, oldContext.getAuthentication().getPrincipal(), authorities);
+                    return callable.call();
+
+                } catch (final Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+        } finally {
+            SecurityContextHolder.setContext(oldContext);
+        }
+    }
+
+    @SuppressWarnings({ "squid:S2221", "squid:S00112" })
+    public <T> T runAsControllerCurrentTenant(@NotNull final Callable<T> callable) {
+        final SecurityContext oldContext = SecurityContextHolder.getContext();
+        final String tenant = tenantAware.getCurrentTenant();
+
+        final List<SimpleGrantedAuthority> authorities = Collections
                 .singletonList(new SimpleGrantedAuthority(SpringEvalExpressions.CONTROLLER_ROLE_ANONYMOUS));
         try {
             return tenantAware.runAsTenant(tenant, () -> {
@@ -154,8 +176,8 @@ public class SystemSecurityContext {
     }
 
     /**
-     * @return {@code true} if the current running code is running as system
-     *         code block.
+     * @return {@code true} if the current running code is running as system code
+     *         block.
      */
     public boolean isCurrentThreadSystemCode() {
         return SecurityContextHolder.getContext().getAuthentication() instanceof SystemCodeAuthentication;
@@ -179,9 +201,9 @@ public class SystemSecurityContext {
     }
 
     /**
-     * An implementation of the Spring's {@link Authentication} object which is
-     * used within a system security code block and wraps the original
-     * authentication object. The wrapped object contains the necessary
+     * An implementation of the Spring's {@link Authentication} object which is used
+     * within a system security code block and wraps the original authentication
+     * object. The wrapped object contains the necessary
      * {@link SpringEvalExpressions#SYSTEM_ROLE} which is allowed to execute all
      * secured methods.
      */
