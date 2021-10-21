@@ -24,6 +24,10 @@ import org.eclipse.hawkbit.ui.common.event.EntityModifiedEventPayload;
 import org.eclipse.hawkbit.ui.common.event.EventTopics;
 import org.vaadin.spring.events.EventBus;
 
+/**
+ * Support for assigning the {@link ProxyTargetType} items to {@link ProxyTarget}.
+ *
+ */
 public class TypeToTargetAssignmentSupport  extends AssignmentSupport<ProxyTargetType, ProxyTarget>  {
     
     private final TargetManagement targetManagement;
