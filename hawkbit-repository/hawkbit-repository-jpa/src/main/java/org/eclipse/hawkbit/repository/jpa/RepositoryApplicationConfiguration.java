@@ -244,7 +244,8 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param dsTypeManagement
-     *            for loading {@link TargetType#getCompatibleDistributionSetTypes()}
+     *            for loading
+     *            {@link TargetType#getCompatibleDistributionSetTypes()}
      * @return TargetTypeBuilder bean
      */
     @Bean
@@ -260,8 +261,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param softwareManagement
-     *            for loading {@link DistributionSetType#getMandatoryModuleTypes()}
-     *            and {@link DistributionSetType#getOptionalModuleTypes()}
+     *            for loading
+     *            {@link DistributionSetType#getMandatoryModuleTypes()} and
+     *            {@link DistributionSetType#getOptionalModuleTypes()}
      * @return DistributionSetTypeBuilder bean
      */
     @Bean
@@ -303,8 +305,8 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @return the {@link SystemSecurityContext} singleton bean which make it
-     *         accessible in beans which cannot access the service directly, e.g.
-     *         JPA entities.
+     *         accessible in beans which cannot access the service directly,
+     *         e.g. JPA entities.
      */
     @Bean
     SystemSecurityContextHolder systemSecurityContextHolder() {
@@ -312,9 +314,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
     }
 
     /**
-     * @return the {@link TenantConfigurationManagement} singleton bean which make
-     *         it accessible in beans which cannot access the service directly, e.g.
-     *         JPA entities.
+     * @return the {@link TenantConfigurationManagement} singleton bean which
+     *         make it accessible in beans which cannot access the service
+     *         directly, e.g. JPA entities.
      */
     @Bean
     TenantConfigurationManagementHolder tenantConfigurationManagementHolder() {
@@ -323,8 +325,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @return the {@link SystemManagementHolder} singleton bean which holds the
-     *         current {@link SystemManagement} service and make it accessible in
-     *         beans which cannot access the service directly, e.g. JPA entities.
+     *         current {@link SystemManagement} service and make it accessible
+     *         in beans which cannot access the service directly, e.g. JPA
+     *         entities.
      */
     @Bean
     SystemManagementHolder systemManagementHolder() {
@@ -332,9 +335,10 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
     }
 
     /**
-     * @return the {@link TenantAwareHolder} singleton bean which holds the current
-     *         {@link TenantAware} service and make it accessible in beans which
-     *         cannot access the service directly, e.g. JPA entities.
+     * @return the {@link TenantAwareHolder} singleton bean which holds the
+     *         current {@link TenantAware} service and make it accessible in
+     *         beans which cannot access the service directly, e.g. JPA
+     *         entities.
      */
     @Bean
     TenantAwareHolder tenantAwareHolder() {
@@ -342,9 +346,10 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
     }
 
     /**
-     * @return the {@link SecurityTokenGeneratorHolder} singleton bean which holds
-     *         the current {@link SecurityTokenGenerator} service and make it
-     *         accessible in beans which cannot access the service via injection
+     * @return the {@link SecurityTokenGeneratorHolder} singleton bean which
+     *         holds the current {@link SecurityTokenGenerator} service and make
+     *         it accessible in beans which cannot access the service via
+     *         injection
      */
     @Bean
     SecurityTokenGeneratorHolder securityTokenGeneratorHolder() {
@@ -574,10 +579,13 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
             final VirtualPropertyReplacer virtualPropertyReplacer,
             final DistributionSetManagement distributionSetManagement, final QuotaManagement quotaManagement,
             final JpaProperties properties, final TenantConfigurationManagement tenantConfigurationManagement,
-            final SystemSecurityContext systemSecurityContext, final TenantAware tenantAware) {
+            final SystemSecurityContext systemSecurityContext, final TenantAware tenantAware,
+            final PlatformTransactionManager txManager, final LockRegistry lockRegistry,
+            final AutoAssignExecutor autoAssignExecutor) {
         return new JpaTargetFilterQueryManagement(targetFilterQueryRepository, targetManagement,
                 virtualPropertyReplacer, distributionSetManagement, quotaManagement, properties.getDatabase(),
-                tenantConfigurationManagement, systemSecurityContext, tenantAware);
+                tenantConfigurationManagement, systemSecurityContext, tenantAware, txManager, lockRegistry,
+                autoAssignExecutor);
     }
 
     /**
@@ -789,8 +797,6 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
     /**
      * {@link AutoAssignChecker} bean.
      *
-     * @param targetFilterQueryManagement
-     *            to get all target filter queries
      * @param targetManagement
      *            to get targets
      * @param deploymentManagement
@@ -801,11 +807,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    AutoAssignExecutor autoAssignExecutor(final TargetFilterQueryManagement targetFilterQueryManagement,
-            final TargetManagement targetManagement, final DeploymentManagement deploymentManagement,
-            final PlatformTransactionManager transactionManager, final TenantAware tenantAware) {
-        return new AutoAssignChecker(targetFilterQueryManagement, targetManagement, deploymentManagement,
-                transactionManager, tenantAware);
+    AutoAssignExecutor autoAssignExecutor(final TargetManagement targetManagement,
+            final DeploymentManagement deploymentManagement, final PlatformTransactionManager transactionManager) {
+        return new AutoAssignChecker(targetManagement, deploymentManagement, transactionManager);
     }
 
     /**
@@ -833,9 +837,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
     @Profile("!test")
     @ConditionalOnProperty(prefix = "hawkbit.autoassign.scheduler", name = "enabled", matchIfMissing = true)
     AutoAssignScheduler autoAssignScheduler(final SystemManagement systemManagement,
-            final SystemSecurityContext systemSecurityContext, final AutoAssignExecutor autoAssignExecutor,
-            final LockRegistry lockRegistry) {
-        return new AutoAssignScheduler(systemManagement, systemSecurityContext, autoAssignExecutor, lockRegistry);
+            final SystemSecurityContext systemSecurityContext,
+            final TargetFilterQueryManagement targetFilterQueryManagement) {
+        return new AutoAssignScheduler(systemManagement, systemSecurityContext, targetFilterQueryManagement);
     }
 
     /**

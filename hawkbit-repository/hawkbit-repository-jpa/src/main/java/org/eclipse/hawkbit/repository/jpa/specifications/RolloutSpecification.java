@@ -8,11 +8,14 @@
  */
 package org.eclipse.hawkbit.repository.jpa.specifications;
 
+import java.util.Collection;
+
 import javax.persistence.criteria.Predicate;
 
 import org.eclipse.hawkbit.repository.jpa.model.JpaRollout;
 import org.eclipse.hawkbit.repository.jpa.model.JpaRollout_;
 import org.eclipse.hawkbit.repository.model.Rollout;
+import org.eclipse.hawkbit.repository.model.Rollout.RolloutStatus;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -42,6 +45,18 @@ public final class RolloutSpecification {
             root.fetch(JpaRollout_.distributionSet);
             return predicate;
         };
+
+    }
+
+    /**
+     * {@link Specification} for retrieving {@link Rollout}s by status.
+     * 
+     * @param rolloutStatus
+     *            list of rollout status to be filtered upon
+     * @return the {@link Rollout} {@link Specification}
+     */
+    public static Specification<JpaRollout> hasStatusIn(final Collection<RolloutStatus> rolloutStatus) {
+        return (root, query, cb) -> root.get(JpaRollout_.status).in(rolloutStatus);
 
     }
 

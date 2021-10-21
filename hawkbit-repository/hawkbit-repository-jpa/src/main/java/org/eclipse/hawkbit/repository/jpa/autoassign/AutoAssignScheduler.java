@@ -8,14 +8,11 @@
  */
 package org.eclipse.hawkbit.repository.jpa.autoassign;
 
-import java.util.concurrent.locks.Lock;
-
 import org.eclipse.hawkbit.repository.SystemManagement;
-import org.eclipse.hawkbit.repository.autoassign.AutoAssignExecutor;
+import org.eclipse.hawkbit.repository.TargetFilterQueryManagement;
 import org.eclipse.hawkbit.security.SystemSecurityContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.integration.support.locks.LockRegistry;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
@@ -30,9 +27,7 @@ public class AutoAssignScheduler {
 
     private final SystemSecurityContext systemSecurityContext;
 
-    private final AutoAssignExecutor autoAssignExecutor;
-
-    private final LockRegistry lockRegistry;
+    private final TargetFilterQueryManagement targetFilterQueryManagement;
 
     /**
      * Instantiates a new AutoAssignScheduler
@@ -41,18 +36,15 @@ public class AutoAssignScheduler {
      *            to find all tenants
      * @param systemSecurityContext
      *            to run as system
-     * @param autoAssignExecutor
-     *            to run a check as tenant
-     * @param lockRegistry
-     *            to acquire a lock per tenant
+     * @param targetFilterQueryManagement
+     *            to execute autoassignment
      */
     public AutoAssignScheduler(final SystemManagement systemManagement,
-            final SystemSecurityContext systemSecurityContext, final AutoAssignExecutor autoAssignExecutor,
-            final LockRegistry lockRegistry) {
+            final SystemSecurityContext systemSecurityContext,
+            final TargetFilterQueryManagement targetFilterQueryManagement) {
         this.systemManagement = systemManagement;
         this.systemSecurityContext = systemSecurityContext;
-        this.autoAssignExecutor = autoAssignExecutor;
-        this.lockRegistry = lockRegistry;
+        this.targetFilterQueryManagement = targetFilterQueryManagement;
     }
 
     /**
@@ -66,28 +58,17 @@ public class AutoAssignScheduler {
         LOGGER.debug("auto assign schedule checker has been triggered.");
         // run this code in system code privileged to have the necessary
         // permission to query and create entities.
-        systemSecurityContext.runAsSystem(this::executeAutoAssign);
-    }
+        systemSecurityContext.runAsSystem(() -> {
+            // workaround eclipselink that is currently not possible to
+            // execute a query without multitenancy if MultiTenant
+            // annotation is used.
+            // https://bugs.eclipse.org/bugs/show_bug.cgi?id=355458. So
+            // iterate through all tenants and execute the rollout check for
+            // each tenant seperately.
 
-    @SuppressWarnings("squid:S3516")
-    private Object executeAutoAssign() {
-        // workaround eclipselink that is currently not possible to
-        // execute a query without multitenancy if MultiTenant
-        // annotation is used.
-        // https://bugs.eclipse.org/bugs/show_bug.cgi?id=355458. So
-        // iterate through all tenants and execute the rollout check for
-        // each tenant separately.
-        final Lock lock = lockRegistry.obtain("autoassign");
-        if (!lock.tryLock()) {
+            systemManagement.forEachTenant(tenant -> targetFilterQueryManagement.handleAutoAssignments());
+
             return null;
-        }
-
-        try {
-            systemManagement.forEachTenant(tenant -> autoAssignExecutor.check());
-        } finally {
-            lock.unlock();
-        }
-
-        return null;
+        });
     }
 }

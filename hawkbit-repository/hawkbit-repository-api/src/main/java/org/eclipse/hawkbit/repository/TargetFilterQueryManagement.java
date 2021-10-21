@@ -269,4 +269,12 @@ public interface TargetFilterQueryManagement {
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_UPDATE_TARGET)
     void cancelAutoAssignmentForDistributionSet(long setId);
+
+    /**
+     * Handle autoassignment for every {@link TargetFilterQuery} with active
+     * autoassignment.
+     *
+     */
+    @PreAuthorize(SpringEvalExpressions.IS_SYSTEM_CODE)
+    void handleAutoAssignments();
 }

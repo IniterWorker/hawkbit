@@ -33,17 +33,6 @@ public interface RolloutRepository
         extends BaseEntityRepository<JpaRollout, Long>, JpaSpecificationExecutor<JpaRollout> {
 
     /**
-     * Retrieves all {@link Rollout} for given status.
-     *
-     * @param status
-     *            the status of the rollouts to find
-     * @return the list of {@link Rollout} for specific status
-     */
-    // Workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=349477
-    @Query("SELECT sm.id FROM JpaRollout sm WHERE sm.status IN ?1")
-    List<Long> findByStatusIn(Collection<RolloutStatus> status);
-
-    /**
      * Retrieves all {@link Rollout} for a specific {@code name}
      *
      * @param name

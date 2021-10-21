@@ -8,6 +8,9 @@
  */
 package org.eclipse.hawkbit.repository.autoassign;
 
+import org.eclipse.hawkbit.repository.model.DistributionSet;
+import org.eclipse.hawkbit.repository.model.TargetFilterQuery;
+
 /**
  * An interface declaration which contains the check for the auto assignment
  * logic.
@@ -16,10 +19,9 @@ package org.eclipse.hawkbit.repository.autoassign;
 public interface AutoAssignExecutor {
 
     /**
-     * Checks all target filter queries with an auto assign distribution set and
-     * triggers the check and assignment to targets that don't have the design DS
-     * yet
+     * Executes assignment for provided {@link TargetFilterQuery} with
+     * autoassign {@link DistributionSet}
      */
-    void check();
+    void execute(final TargetFilterQuery targetFilterQuery);
 
 }

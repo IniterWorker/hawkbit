@@ -11,7 +11,9 @@ package org.eclipse.hawkbit.repository.jpa;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.locks.Lock;
 
 import org.eclipse.hawkbit.repository.DistributionSetManagement;
 import org.eclipse.hawkbit.repository.QuotaManagement;
@@ -20,6 +22,7 @@ import org.eclipse.hawkbit.repository.TargetFilterQueryFields;
 import org.eclipse.hawkbit.repository.TargetFilterQueryManagement;
 import org.eclipse.hawkbit.repository.TargetManagement;
 import org.eclipse.hawkbit.repository.TenantConfigurationManagement;
+import org.eclipse.hawkbit.repository.autoassign.AutoAssignExecutor;
 import org.eclipse.hawkbit.repository.builder.AutoAssignDistributionSetUpdate;
 import org.eclipse.hawkbit.repository.builder.GenericTargetFilterQueryUpdate;
 import org.eclipse.hawkbit.repository.builder.TargetFilterQueryCreate;
@@ -34,6 +37,7 @@ import org.eclipse.hawkbit.repository.jpa.model.JpaTargetFilterQuery;
 import org.eclipse.hawkbit.repository.jpa.rsql.RSQLUtility;
 import org.eclipse.hawkbit.repository.jpa.specifications.SpecificationsBuilder;
 import org.eclipse.hawkbit.repository.jpa.specifications.TargetFilterQuerySpecification;
+import org.eclipse.hawkbit.repository.jpa.utils.DeploymentHelper;
 import org.eclipse.hawkbit.repository.jpa.utils.QuotaHelper;
 import org.eclipse.hawkbit.repository.jpa.utils.WeightValidationHelper;
 import org.eclipse.hawkbit.repository.model.Action.ActionType;
@@ -48,11 +52,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.integration.support.locks.LockRegistry;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -72,6 +80,8 @@ public class JpaTargetFilterQueryManagement implements TargetFilterQueryManageme
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JpaTargetFilterQueryManagement.class);
 
+    private static final int TARGET_FILTER_PAGE_LIMIT = 50;
+
     private final TargetFilterQueryRepository targetFilterQueryRepository;
     private final TargetManagement targetManagement;
 
@@ -82,6 +92,9 @@ public class JpaTargetFilterQueryManagement implements TargetFilterQueryManageme
     private final TenantConfigurationManagement tenantConfigurationManagement;
     private final SystemSecurityContext systemSecurityContext;
     private final TenantAware tenantAware;
+    private final PlatformTransactionManager txManager;
+    private final LockRegistry lockRegistry;
+    private final AutoAssignExecutor autoAssignExecutor;
 
     private final Database database;
 
@@ -89,7 +102,9 @@ public class JpaTargetFilterQueryManagement implements TargetFilterQueryManageme
             final TargetManagement targetManagement, final VirtualPropertyReplacer virtualPropertyReplacer,
             final DistributionSetManagement distributionSetManagement, final QuotaManagement quotaManagement,
             final Database database, final TenantConfigurationManagement tenantConfigurationManagement,
-            final SystemSecurityContext systemSecurityContext, final TenantAware tenantAware) {
+            final SystemSecurityContext systemSecurityContext, final TenantAware tenantAware,
+            final PlatformTransactionManager txManager, final LockRegistry lockRegistry,
+            final AutoAssignExecutor autoAssignExecutor) {
         this.targetFilterQueryRepository = targetFilterQueryRepository;
         this.targetManagement = targetManagement;
         this.virtualPropertyReplacer = virtualPropertyReplacer;
@@ -99,6 +114,9 @@ public class JpaTargetFilterQueryManagement implements TargetFilterQueryManageme
         this.tenantConfigurationManagement = tenantConfigurationManagement;
         this.systemSecurityContext = systemSecurityContext;
         this.tenantAware = tenantAware;
+        this.txManager = txManager;
+        this.lockRegistry = lockRegistry;
+        this.autoAssignExecutor = autoAssignExecutor;
     }
 
     @Override
@@ -323,5 +341,61 @@ public class JpaTargetFilterQueryManagement implements TargetFilterQueryManageme
     public void cancelAutoAssignmentForDistributionSet(final long setId) {
         targetFilterQueryRepository.unsetAutoAssignDistributionSetAndActionType(setId);
         LOGGER.debug("Auto assignments for distribution sets {} deactivated", setId);
+    }
+
+    @Override
+    // No transaction, will be created per handled target filter
+    @Transactional(propagation = Propagation.NEVER)
+    public void handleAutoAssignments() {
+        final String tenant = tenantAware.getCurrentTenant();
+        final String handlerId = createAutoassignLockKey(tenant);
+        final Lock lock = lockRegistry.obtain(handlerId);
+        if (!lock.tryLock()) {
+            return;
+        }
+
+        try {
+            Page<JpaTargetFilterQuery> filterQueries;
+            Pageable page = PageRequest.of(0, TARGET_FILTER_PAGE_LIMIT);
+            do {
+                filterQueries = targetFilterQueryRepository.findAll(TargetFilterQuerySpecification.withAutoAssignDS(),
+                        page);
+                filterQueries.forEach(filterQuery -> handleAutoAssignment(handlerId, filterQuery));
+            } while ((page = filterQueries.nextPageable()) != Pageable.unpaged());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static String createAutoassignLockKey(final String tenant) {
+        return tenant + "-autoassignment";
+    }
+
+    private void handleAutoAssignment(final String transactionNamePrefix, final TargetFilterQuery filterQuery) {
+        final String transactionId = transactionNamePrefix + "-" + filterQuery.getId();
+        try {
+            DeploymentHelper.runInNewTransaction(txManager, transactionId, status -> {
+                runInUserContext(filterQuery, () -> autoAssignExecutor.execute(filterQuery));
+                return null;
+            });
+        } catch (final RuntimeException ex) {
+            LOGGER.debug(
+                    "Exception on forEachFilterWithAutoAssignDS execution for tenant {} with filter id {}, transaction id {}. Continue with next filter query.",
+                    filterQuery.getTenant(), filterQuery.getId(), transactionId, ex);
+            LOGGER.error(
+                    "Exception on forEachFilterWithAutoAssignDS execution for tenant {} with filter id {}, transaction id {} and error message [{}]. "
+                            + "Continue with next filter query.",
+                    filterQuery.getTenant(), filterQuery.getId(), transactionId, ex.getMessage());
+        }
+    }
+
+    private void runInUserContext(final TargetFilterQuery targetFilterQuery, final Runnable handler) {
+        DeploymentHelper.runInNonSystemContext(handler,
+                () -> Objects.requireNonNull(getAutoAssignmentInitiatedBy(targetFilterQuery)), tenantAware);
+    }
+
+    private static String getAutoAssignmentInitiatedBy(final TargetFilterQuery targetFilterQuery) {
+        return StringUtils.isEmpty(targetFilterQuery.getAutoAssignInitiatedBy()) ? targetFilterQuery.getCreatedBy()
+                : targetFilterQuery.getAutoAssignInitiatedBy();
     }
 }

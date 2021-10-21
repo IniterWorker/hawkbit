@@ -73,6 +73,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.domain.Specification;
@@ -98,6 +99,8 @@ import com.google.common.collect.Lists;
 @Transactional(readOnly = true)
 public class JpaRolloutManagement extends AbstractRolloutManagement {
     private static final Logger LOGGER = LoggerFactory.getLogger(JpaRolloutManagement.class);
+
+    private static final int ROLLOUT_PAGE_SIZE = 50;
 
     private static final List<RolloutStatus> ACTIVE_ROLLOUTS = Arrays.asList(RolloutStatus.CREATING,
             RolloutStatus.DELETING, RolloutStatus.STARTING, RolloutStatus.READY, RolloutStatus.RUNNING,
@@ -398,14 +401,7 @@ public class JpaRolloutManagement extends AbstractRolloutManagement {
     // No transaction, will be created per handled rollout
     @Transactional(propagation = Propagation.NEVER)
     public void handleRollouts() {
-        final List<Long> rollouts = rolloutRepository.findByStatusIn(ACTIVE_ROLLOUTS);
-
-        if (rollouts.isEmpty()) {
-            return;
-        }
-
         final String tenant = tenantAware.getCurrentTenant();
-
         final String handlerId = createRolloutLockKey(tenant);
         final Lock lock = lockRegistry.obtain(handlerId);
         if (!lock.tryLock()) {
@@ -413,8 +409,12 @@ public class JpaRolloutManagement extends AbstractRolloutManagement {
         }
 
         try {
-            rollouts.forEach(rolloutId -> DeploymentHelper.runInNewTransaction(txManager, handlerId + "-" + rolloutId,
-                    status -> handleRollout(rolloutId)));
+            Page<JpaRollout> rollouts;
+            Pageable page = PageRequest.of(0, ROLLOUT_PAGE_SIZE);
+            do {
+                rollouts = rolloutRepository.findAll(RolloutSpecification.hasStatusIn(ACTIVE_ROLLOUTS), page);
+                rollouts.forEach(rollout -> handleRollout(handlerId, rollout));
+            } while ((page = rollouts.nextPageable()) != Pageable.unpaged());
         } finally {
             lock.unlock();
         }
@@ -424,11 +424,21 @@ public class JpaRolloutManagement extends AbstractRolloutManagement {
         return tenant + "-rollout";
     }
 
-    private long handleRollout(final long rolloutId) {
-        final JpaRollout rollout = rolloutRepository.findById(rolloutId)
-                .orElseThrow(() -> new EntityNotFoundException(Rollout.class, rolloutId));
-        runInUserContext(rollout, () -> rolloutExecutor.execute(rollout));
-        return 0;
+    private void handleRollout(final String transactionNamePrefix, final Rollout rollout) {
+        final String transactionId = transactionNamePrefix + "-" + rollout.getId();
+        try {
+            DeploymentHelper.runInNewTransaction(txManager, transactionId, status -> {
+                runInUserContext(rollout, () -> rolloutExecutor.execute(rollout));
+                return null;
+            });
+        } catch (final RuntimeException ex) {
+            LOGGER.debug(
+                    "Exception during rollout handling for tenant {} with rollout id {}, transaction id {}. Continue with next rollout.",
+                    rollout.getTenant(), rollout.getId(), transactionId, ex);
+            LOGGER.error(
+                    "Exception during rollout handling for tenant {} with rollout id {}, transaction id {} and error message [{}]. Continue with next rollout.",
+                    rollout.getTenant(), rollout.getId(), transactionId, ex.getMessage());
+        }
     }
 
     @Override
