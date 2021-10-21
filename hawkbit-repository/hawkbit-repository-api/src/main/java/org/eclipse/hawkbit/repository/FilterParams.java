@@ -66,11 +66,15 @@ public class FilterParams {
     /**
      * Constructor for the filter parameters of a Type Filter.
      *
+     * @param filterBySearchText
+     *            if set, a filter is added for the given search text
      * @param filterByInstalledOrAssignedDistributionSetId
      *            if set, a filter is added for the given
      *            {@link DistributionSet#getId()}
-     * @param filterBySearchText
-     *            if set, a filter is added for the given search text
+     * @param selectTargetWithNoType
+     *            if true, a filter is added with no type
+     * @param filterByType
+     *            if set, a filter is added for the given target type
      */
     public FilterParams(final String filterBySearchText, final Long filterByInstalledOrAssignedDistributionSetId,
                         final Boolean selectTargetWithNoType, final Long filterByType) {
@@ -147,10 +151,21 @@ public class FilterParams {
         return filterByTagNames;
     }
 
+    /**
+     * Gets the flag indicating if no target type filter is used. <br>
+     * If set to <code>false</code> this filter is disabled.
+     *
+     * @return the flag indicating if no target type filter is used
+     */
     public Boolean getSelectTargetWithNoTargetType() {
         return selectTargetWithNoTargetType;
     }
 
+    /**
+     * Gets the target type
+     *
+     * @return the target type that are used to filter for
+     */
     public Long getFilterByTargetType() {
         return filterByTargetType;
     }

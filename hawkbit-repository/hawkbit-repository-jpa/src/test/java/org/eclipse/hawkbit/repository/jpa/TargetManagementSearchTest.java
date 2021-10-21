@@ -196,8 +196,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat1TargetAIsInStatusPendingAndHasDSInstalled(final DistributionSet installedSet,
             final List<TargetUpdateStatus> pending, final Target expected) {
-        final FilterParams filterParams = new FilterParams(pending, null, null, installedSet.getId(), Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(pending, null, null, installedSet.getId(), Boolean.FALSE);
         final String query = "updatestatus==pending and installedds.name==" + installedSet.getName();
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
                 .hasSize(1).as("that number is also returned by count query")
@@ -271,8 +270,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat1TargetWithGivenNameOrDescAndDSIsInPending(final DistributionSet setA,
             final List<TargetUpdateStatus> pending, final Target expected) {
-        final FilterParams filterParams = new FilterParams(pending, null, "%targ-A%", setA.getId(), Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(pending, null, "%targ-A%", setA.getId(), Boolean.FALSE);
         final String query = "updatestatus==pending and (assignedds.name==" + setA.getName() + " or installedds.name=="
                 + setA.getName() + ") and (name==*targ-A* or description==*targ-A*)";
 
@@ -287,8 +285,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat3TargetsWithGivenDSAreInPending(final DistributionSet setA,
             final List<TargetUpdateStatus> pending, final List<Target> expected) {
-        final FilterParams filterParams = new FilterParams(pending, null, null, setA.getId(), Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(pending, null, null, setA.getId(), Boolean.FALSE);
         final String query = "updatestatus==pending and (assignedds.name==" + setA.getName() + " or installedds.name=="
                 + setA.getName() + ")";
 
@@ -303,7 +300,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat4TargetsAreInStatusPending(final List<TargetUpdateStatus> pending,
             final List<Target> expected) {
-        final FilterParams filterParams = new FilterParams(pending, null, null, null, Boolean.FALSE, new String[0]);
+        final FilterParams filterParams = new FilterParams(pending, null, null, null, Boolean.FALSE);
         final String query = "updatestatus==pending";
 
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
@@ -333,8 +330,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat99TargetsWithNameOrDescriptionAreInGivenStatus(final List<TargetUpdateStatus> unknown,
             final List<Target> expected) {
-        final FilterParams filterParams = new FilterParams(unknown, null, "%targ-A%", null, Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(unknown, null, "%targ-A%", null, Boolean.FALSE);
         final String query = "updatestatus==unknown and (name==*targ-A* or description==*targ-A*)";
 
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
@@ -348,8 +344,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat0TargetsAreInStatusUnknownAndHaveDSAssigned(final DistributionSet setA,
             final List<TargetUpdateStatus> unknown) {
-        final FilterParams filterParams = new FilterParams(unknown, null, null, setA.getId(), Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(unknown, null, null, setA.getId(), Boolean.FALSE);
         final String query = "updatestatus==unknown and (assignedds.name==" + setA.getName() + " or installedds.name=="
                 + setA.getName() + ")";
 
@@ -379,7 +374,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat496TargetsAreInStatusUnknown(final List<TargetUpdateStatus> unknown,
             final List<Target> expected) {
-        final FilterParams filterParams = new FilterParams(unknown, null, null, null, Boolean.FALSE, new String[0]);
+        final FilterParams filterParams = new FilterParams(unknown, null, null, null, Boolean.FALSE);
         final String query = "updatestatus==unknown";
 
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
@@ -393,19 +388,10 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
     @Step
     private void verifyThat198TargetsAreInStatusUnknownAndOverdue(final List<TargetUpdateStatus> unknown,
             final List<Target> expected) {
-        final FilterParams filterParams = new FilterParams(unknown, Boolean.TRUE, null, null, Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(unknown, Boolean.TRUE, null, null, Boolean.FALSE);
         // be careful: simple filters are concatenated using AND-gating
         final String query = "lastcontrollerrequestat=le=${overdue_ts};updatestatus==UNKNOWN";
 
-        assertThat(targetManagement
-                .findByFilters(PAGE, new FilterParams(unknown, Boolean.TRUE, null, null, Boolean.FALSE)).getContent())
-                        .as("has number of elements").hasSize(198).as("that number is also returned by count query")
-                        .hasSize(Ints.saturatedCast(
-                                targetManagement.countByFilters(unknown, Boolean.TRUE, null, null, Boolean.FALSE)))
-                        .as("and contains the following elements").containsAll(expected)
-                        .as("and filter query returns the same result")
-                        .containsAll(targetManagement.findByRsql(PAGE, query).getContent());
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
                 .hasSize(198).as("that number is also returned by count query")
                 .hasSize(Ints.saturatedCast(targetManagement.countByFilters(filterParams)))
@@ -416,20 +402,9 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
 
     @Step
     private void verifyThat1TargetWithDescOrNameHasDS(final DistributionSet setA, final Target expected) {
-        final FilterParams filterParams = new FilterParams(null, null, "%targ-A%", setA.getId(), Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(null, null, "%targ-A%", setA.getId(), Boolean.FALSE);
         final String query = "(name==*targ-A* or description==*targ-A*) and (assignedds.name==" + setA.getName()
                 + " or installedds.name==" + setA.getName() + ")";
-
-        assertThat(targetManagement
-                .findByFilters(PAGE, new FilterParams(null, null, "%targ-A%", setA.getId(), Boolean.FALSE))
-                .getContent())
-                        .as("has number of elements").hasSize(1).as("that number is also returned by count query")
-                        .hasSize(Ints.saturatedCast(
-                                targetManagement.countByFilters(null, null, "%targ-A%", setA.getId(), Boolean.FALSE)))
-                        .as("and contains the following elements").containsExactly(expected)
-                        .as("and filter query returns the same result")
-                        .containsAll(targetManagement.findByRsql(PAGE, query).getContent());
 
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
                 .hasSize(1).as("that number is also returned by count query")
@@ -441,18 +416,8 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
 
     @Step
     private void verifyThat3TargetsHaveDSAssigned(final DistributionSet setA, final List<Target> expected) {
-        final FilterParams filterParams = new FilterParams(null, null, null, setA.getId(), Boolean.FALSE,
-                new String[0]);
+        final FilterParams filterParams = new FilterParams(null, null, null, setA.getId(), Boolean.FALSE);
         final String query = "assignedds.name==" + setA.getName() + " or installedds.name==" + setA.getName();
-
-        assertThat(targetManagement.findByFilters(PAGE, new FilterParams(null, null, null, setA.getId(), Boolean.FALSE))
-                .getContent())
-                        .as("has number of elements").hasSize(3).as("that number is also returned by count query")
-                        .hasSize(Ints.saturatedCast(
-                                targetManagement.countByFilters(null, null, null, setA.getId(), Boolean.FALSE)))
-                        .as("and contains the following elements").containsAll(expected)
-                        .as("and filter query returns the same result")
-                        .containsAll(targetManagement.findByRsql(PAGE, query).getContent());
 
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent()).as("has number of elements")
                 .hasSize(3).as("that number is also returned by count query")
@@ -560,7 +525,7 @@ class TargetManagementSearchTest extends AbstractJpaIntegrationTest {
 
     @Step
     private void verifyThatRepositoryContains500Targets() {
-        final FilterParams filterParams = new FilterParams(null, null, null, null, null, new String[0]);
+        final FilterParams filterParams = new FilterParams(null, null, null, null, null);
         assertThat(targetManagement.findByFilters(PAGE, filterParams).getContent())
                 .as("Overall we expect that many targets in the repository").hasSize(500)
                 .as("which is also reflected by repository count").hasSize(Ints.saturatedCast(targetManagement.count()))

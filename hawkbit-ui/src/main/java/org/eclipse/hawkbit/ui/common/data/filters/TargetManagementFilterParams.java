@@ -8,19 +8,17 @@
  */
 package org.eclipse.hawkbit.ui.common.data.filters;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-
+import com.google.common.base.MoreObjects;
 import org.eclipse.hawkbit.repository.model.TargetUpdateStatus;
 import org.eclipse.hawkbit.ui.common.data.providers.TargetManagementStateDataProvider;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import com.google.common.base.MoreObjects;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
 
 /**
  * Filter params for {@link TargetManagementStateDataProvider}.
@@ -127,15 +125,6 @@ public class TargetManagementFilterParams implements Serializable {
 
     private boolean isAnyComplexFilterSelected() {
         return distributionId != null || targetFilterQueryId != null || targetTypeId != null || isNoTargetTypeClicked();
-    }
-
-
-    public boolean isNoTargetTypeClicked() {
-        return noTargetTypeClicked;
-    }
-
-    public void setNoTargetTypeClicked(boolean noTargetTypeClicked) {
-        this.noTargetTypeClicked = noTargetTypeClicked;
     }
 
     /**
@@ -294,10 +283,42 @@ public class TargetManagementFilterParams implements Serializable {
         this.noTagClicked = noTagClicked;
     }
 
+    /**
+     * Gets the status of no target Type clicked
+     *
+     * @return noTargetTypeClicked <code>true</code> if it is clicked, otherwise
+     *         <code>false</code>
+     */
+    public boolean isNoTargetTypeClicked() {
+        return noTargetTypeClicked;
+    }
+
+    /**
+     * Sets the state of no target type filter
+     *
+     * @param noTargetTypeClicked
+     *            <code>true</code> if the tag is clicked, otherwise
+     *            <code>false</code>
+     */
+    public void setNoTargetTypeClicked(boolean noTargetTypeClicked) {
+        this.noTargetTypeClicked = noTargetTypeClicked;
+    }
+
+    /**
+     * Gets the targetTypeId
+     *
+     * @return targetTypeId for target type filter
+     */
     public Long getTargetTypeId() {
         return targetTypeId;
     }
 
+    /**
+     * Sets the targetType
+     *
+     * @param targetTypeId
+     *            Id of targetType
+     */
     public void setTargetTypeId(Long targetTypeId) {
         this.targetTypeId = targetTypeId;
     }

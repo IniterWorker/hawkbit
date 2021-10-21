@@ -9,11 +9,9 @@
 package org.eclipse.hawkbit.ui.common.filterlayout;
 
 import com.vaadin.ui.Button;
-import com.vaadin.ui.Window;
 import org.eclipse.hawkbit.repository.TargetTypeManagement;
 import org.eclipse.hawkbit.ui.common.CommonUiDependencies;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyIdentifiableEntity;
-import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTag;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTarget;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTargetType;
 import org.eclipse.hawkbit.ui.common.event.EventTopics;
@@ -39,17 +37,11 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
     private static final long serialVersionUID = 1L;
 
     private final TargetTagFilterLayoutUiState targetTagFilterLayoutUiState;
-
     protected final UINotification uiNotification;
-
     private final TargetTypeFilterButtonClick targetTypeFilterButtonClick;
-
     private final transient TargetTypeManagement targetTypeManagement;
-
     private final Button noTargetTypeButton;
-
-    private boolean preNoTargetTypeBtnState = false;
-
+    private boolean preNoTargetTypeBtnState;
 
     /**
      * Constructor for AbstractTargetTypeFilterButtons
@@ -60,10 +52,13 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
      * @param targetTypeManagement
      *          TargetTypeManagement
      */
-    protected AbstractTargetTypeFilterButtons(final CommonUiDependencies uiDependencies, TargetTagFilterLayoutUiState targetTagFilterLayoutUiState, TargetTypeManagement targetTypeManagement) {
+    protected AbstractTargetTypeFilterButtons(final CommonUiDependencies uiDependencies,
+                                              final TargetTagFilterLayoutUiState targetTagFilterLayoutUiState,
+                                              final TargetTypeManagement targetTypeManagement) {
         super(uiDependencies.getEventBus(), uiDependencies.getI18n(), uiDependencies.getUiNotification(),
                 uiDependencies.getPermChecker());
 
+        this.preNoTargetTypeBtnState = false;
         this.uiNotification = uiDependencies.getUiNotification();
         this.targetTagFilterLayoutUiState = targetTagFilterLayoutUiState;
         this.targetTypeManagement = targetTypeManagement;
@@ -92,6 +87,9 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
         return noTargetType;
     }
 
+    /**
+     * @return the noTargetType Button component
+     */
     public Button getNoTargetTypeButton() {
         return noTargetTypeButton;
     }
@@ -172,14 +170,24 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
         }
     }
 
-    protected abstract Collection<Long> filterExistingTypeIds(final Collection<Long> tagIds);
-
+    /**
+     * Reset filter on target type updated
+     *
+     * @param updatedTargetTypeIds
+     *          Collections of updated target type Ids
+     */
     public void resetFilterOnTargetTypeUpdated(Collection<Long> updatedTargetTypeIds) {
         if (isClickedTargetTypeInIds(updatedTargetTypeIds)) {
             publishFilterChangedEvent(targetTypeFilterButtonClick.getPreviouslyClickedFilterId());
         }
     }
 
+    /**
+     * Reset filter on target type deleted
+     *
+     * @param deletedTargetTargetTypeIds
+     *          Collections of updated target type Ids
+     */
     public void resetFilterOnTargetTypeDeleted(final Collection<Long> deletedTargetTargetTypeIds) {
         if (isClickedTargetTypeInIds(deletedTargetTargetTypeIds)) {
             targetTypeFilterButtonClick.setPreviouslyClickedFilterId(null);
@@ -192,6 +200,9 @@ public abstract class AbstractTargetTypeFilterButtons extends AbstractFilterButt
         return clickedTargetTypeId != null && targetTypeIds.contains(clickedTargetTypeId);
     }
 
+    /**
+     * Reevaluate filter
+     */
     public void reevaluateFilter() {
         final Long clickedTargetTypeId = targetTypeFilterButtonClick.getPreviouslyClickedFilterId();
 

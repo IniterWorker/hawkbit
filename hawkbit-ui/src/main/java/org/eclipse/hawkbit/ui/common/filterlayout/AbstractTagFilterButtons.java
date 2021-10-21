@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import org.eclipse.hawkbit.ui.common.CommonUiDependencies;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyIdentifiableEntity;
 import org.eclipse.hawkbit.ui.common.data.proxies.ProxyTag;
@@ -45,7 +44,6 @@ public abstract class AbstractTagFilterButtons extends AbstractFilterButtons<Pro
 
     protected final UINotification uiNotification;
     private final Button noTagButton;
-
     private final transient TagFilterButtonClick tagFilterButtonClick;
 
     /**
