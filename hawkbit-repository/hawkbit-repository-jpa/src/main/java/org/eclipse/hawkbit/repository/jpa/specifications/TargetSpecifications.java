@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.ListJoin;
@@ -393,7 +394,7 @@ public final class TargetSpecifications {
             // isNull predicate first
             final Predicate targetTypeIsNull = targetRoot.get(JpaTarget_.targetType).isNull();
 
-            return cb.or(targetTypeIsNull, getDistSetTypeEqualPredicate(targetRoot, cb, distributionSetTypeId));
+            return cb.or(targetTypeIsNull, cb.equal(getDsTypeIdPath(targetRoot), distributionSetTypeId));
         };
     }
 
@@ -413,19 +414,21 @@ public final class TargetSpecifications {
             // isNotNull predicate first
             final Predicate targetTypeNotNull = targetRoot.get(JpaTarget_.targetType).isNotNull();
 
+            // We need to check for isNull(...) and notEqual(...) since we allow
+            // target types that don't have any compatible distribution set type
             return cb.and(targetTypeNotNull,
-                    cb.isNull(getDistSetTypeEqualPredicate(targetRoot, cb, distributionSetTypeId)));
+                    cb.or(cb.isNull(getDsTypeIdPath(targetRoot)),
+                            cb.notEqual(getDsTypeIdPath(targetRoot), distributionSetTypeId)));
         };
     }
 
-    private static Predicate getDistSetTypeEqualPredicate(final Root<JpaTarget> root, final CriteriaBuilder cb,
-            final Long dsTypeId) {
+    private static Path<Long> getDsTypeIdPath(final Root<JpaTarget> root) {
         final Join<JpaTarget, JpaTargetType> targetTypeJoin = root.join(JpaTarget_.targetType, JoinType.LEFT);
         targetTypeJoin.fetch(JpaTargetType_.distributionSetTypes);
         final SetJoin<JpaTargetType, JpaDistributionSetType> dsTypeTargetTypeJoin = targetTypeJoin
                 .join(JpaTargetType_.distributionSetTypes, JoinType.LEFT);
 
-        return cb.equal(dsTypeTargetTypeJoin.get(JpaDistributionSetType_.id), dsTypeId);
+        return dsTypeTargetTypeJoin.get(JpaDistributionSetType_.id);
     }
 
     /**
@@ -537,4 +540,36 @@ public final class TargetSpecifications {
     public static Specification<JpaTarget> hasTargetType() {
         return (targetRoot, query, cb) -> cb.isNotNull(targetRoot.get(JpaTarget_.targetType));
     }
+
+    /**
+     * Can be added to specification chain to order result by provided distribution
+     * set
+     *
+     * Order: 1. Targets with DS installed, 2. Targets with DS assigned, 3. Based on
+     * target id
+     *
+     * NOTE: Other specs, pagables and sort objects may alter the queries orderBy
+     * entry too, possibly invalidating the applied order, keep in mind when using
+     * this
+     *
+     * @param distributionSetIdForOrder
+     *            distribution set to consider
+     * @return specification that applies order by ds, may be overwritten
+     */
+    public static Specification<JpaTarget> orderedByLinkedDistributionSet(long distributionSetIdForOrder) {
+        return (targetRoot, query, cb) -> {
+            // Enhance query with custom select based sort
+            final Expression<Object> selectCase = cb.selectCase()
+                    .when(cb.equal(targetRoot.get(JpaTarget_.installedDistributionSet).get(JpaDistributionSet_.id),
+                            distributionSetIdForOrder), 1)
+                    .when(cb.equal(targetRoot.get(JpaTarget_.assignedDistributionSet).get(JpaDistributionSet_.id),
+                            distributionSetIdForOrder), 2)
+                    .otherwise(100);
+            query.orderBy(cb.asc(selectCase), cb.desc(targetRoot.get(JpaTarget_.id)));
+
+            // Spec only provides order, so no further filtering
+            return query.getRestriction();
+        };
+    }
+
 }

@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 
 import org.eclipse.hawkbit.artifact.repository.ArtifactRepository;
 import org.eclipse.hawkbit.repository.ArtifactManagement;
+import org.eclipse.hawkbit.repository.BaseRepositoryTypeProvider;
 import org.eclipse.hawkbit.repository.ControllerManagement;
 import org.eclipse.hawkbit.repository.DeploymentManagement;
 import org.eclipse.hawkbit.repository.DistributionSetManagement;
@@ -55,8 +56,8 @@ import org.eclipse.hawkbit.repository.event.remote.EventEntityManager;
 import org.eclipse.hawkbit.repository.event.remote.EventEntityManagerHolder;
 import org.eclipse.hawkbit.repository.event.remote.TargetPollEvent;
 import org.eclipse.hawkbit.repository.jpa.aspects.ExceptionMappingAspectHandler;
-import org.eclipse.hawkbit.repository.jpa.autoassign.DefaultAutoAssignExecutor;
 import org.eclipse.hawkbit.repository.jpa.autoassign.AutoAssignScheduler;
+import org.eclipse.hawkbit.repository.jpa.autoassign.DefaultAutoAssignExecutor;
 import org.eclipse.hawkbit.repository.jpa.autocleanup.AutoActionCleanup;
 import org.eclipse.hawkbit.repository.jpa.autocleanup.AutoCleanupScheduler;
 import org.eclipse.hawkbit.repository.jpa.autocleanup.CleanupTask;
@@ -140,7 +141,7 @@ import com.google.common.collect.Maps;
  * General configuration for hawkBit's Repository.
  *
  */
-@EnableJpaRepositories(value = "org.eclipse.hawkbit.repository.jpa", repositoryBaseClass = SimpleJpaWithNoCountRepository.class)
+@EnableJpaRepositories(value = "org.eclipse.hawkbit.repository.jpa", repositoryFactoryBeanClass = CustomBaseRepositoryFactoryBean.class)
 @EnableTransactionManagement
 @EnableJpaAuditing
 @EnableAspectJAutoProxy
@@ -670,18 +671,21 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    RolloutManagement rolloutManagement(final TargetManagement targetManagement,
-            final DeploymentManagement deploymentManagement, final RolloutGroupManagement rolloutGroupManagement,
-            final DistributionSetManagement distributionSetManagement, final ApplicationContext context,
-            final EventPublisherHolder eventPublisherHolder, final VirtualPropertyReplacer virtualPropertyReplacer,
+    RolloutManagement rolloutManagement(final RolloutRepository rolloutRepository,
+            final RolloutGroupRepository rolloutGroupRepository, final ActionRepository actionRepository,
+            final TargetManagement targetManagement, final DistributionSetManagement distributionSetManagement,
+            final QuotaManagement quotaManagement, final TenantConfigurationManagement tenantConfigurationManagement,
+            final AfterTransactionCommitExecutor afterCommit, final RolloutExecutor rolloutExecutor,
+            final RolloutStatusCache rolloutStatusCache, final RolloutApprovalStrategy rolloutApprovalStrategy,
             final PlatformTransactionManager txManager, final TenantAware tenantAware, final LockRegistry lockRegistry,
-            final JpaProperties properties, final RolloutApprovalStrategy rolloutApprovalStrategy,
-            final TenantConfigurationManagement tenantConfigurationManagement,
-            final SystemSecurityContext systemSecurityContext, final RolloutExecutor rolloutExecutor) {
-        return new JpaRolloutManagement(targetManagement, deploymentManagement, rolloutGroupManagement,
-                distributionSetManagement, context, eventPublisherHolder, virtualPropertyReplacer, txManager,
-                tenantAware, lockRegistry, properties.getDatabase(), rolloutApprovalStrategy,
-                tenantConfigurationManagement, systemSecurityContext, rolloutExecutor);
+            final SystemSecurityContext systemSecurityContext, final EventPublisherHolder eventPublisherHolder,
+            final EntityManager entityManager, final VirtualPropertyReplacer virtualPropertyReplacer,
+            final JpaProperties properties) {
+        return new JpaRolloutManagement(rolloutRepository, rolloutGroupRepository, actionRepository, targetManagement,
+                distributionSetManagement, quotaManagement, tenantConfigurationManagement, afterCommit, rolloutExecutor,
+                rolloutStatusCache, rolloutApprovalStrategy, txManager, tenantAware, lockRegistry,
+                systemSecurityContext, eventPublisherHolder, entityManager, virtualPropertyReplacer,
+                properties.getDatabase());
     }
 
     /**
@@ -944,4 +948,16 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
                 lockRegistry);
     }
 
+    /**
+     * Our default {@link BaseRepositoryTypeProvider} bean always provides the
+     * NoCountBaseRepository
+     *
+     * @return a {@link BaseRepositoryTypeProvider} bean
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    BaseRepositoryTypeProvider baseRepositoryTypeProvider() {
+        return new NoCountBaseRepositoryTypeProvider();
+
+    }
 }
