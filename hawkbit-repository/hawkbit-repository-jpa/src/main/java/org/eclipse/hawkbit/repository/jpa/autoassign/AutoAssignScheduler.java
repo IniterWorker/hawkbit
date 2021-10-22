@@ -70,6 +70,12 @@ public class AutoAssignScheduler {
         });
     }
 
+    /**
+     * Handles autoassignment in tenant context
+     * 
+     * @param tenant
+     *            for tenant-specific autoassignment handling in subclasses
+     */
     protected void handleAutoAssignmentForTenant(final String tenant) {
         targetFilterQueryManagement.handleAutoAssignments();
     }
