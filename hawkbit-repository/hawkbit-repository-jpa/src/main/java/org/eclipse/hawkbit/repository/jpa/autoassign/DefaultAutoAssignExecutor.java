@@ -26,15 +26,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * Checks if targets need a new distribution set (DS) based on the target filter
- * queries and assigns the new DS when necessary. First all target filter
- * queries are listed. For every target filter query (TFQ) the auto assign DS is
- * retrieved. All targets get listed per target filter query, that match the TFQ
- * and that don't have the auto assign DS in their action history.
+ * query and assigns the new DS when necessary. All targets get listed per
+ * target filter query, that match the TFQ and that don't have the auto assign
+ * DS in their action history.
  */
-// TODO: rename to DefaultAutoAssignExecutor
-public class AutoAssignChecker extends AbstractAutoAssignExecutor {
+public class DefaultAutoAssignExecutor extends AbstractAutoAssignExecutor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AutoAssignChecker.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAutoAssignExecutor.class);
 
     private final TargetManagement targetManagement;
 
@@ -48,8 +46,8 @@ public class AutoAssignChecker extends AbstractAutoAssignExecutor {
      * @param transactionManager
      *            to run transactions
      */
-    public AutoAssignChecker(final TargetManagement targetManagement, final DeploymentManagement deploymentManagement,
-            final PlatformTransactionManager transactionManager) {
+    public DefaultAutoAssignExecutor(final TargetManagement targetManagement,
+            final DeploymentManagement deploymentManagement, final PlatformTransactionManager transactionManager) {
         super(deploymentManagement, transactionManager);
         this.targetManagement = targetManagement;
     }

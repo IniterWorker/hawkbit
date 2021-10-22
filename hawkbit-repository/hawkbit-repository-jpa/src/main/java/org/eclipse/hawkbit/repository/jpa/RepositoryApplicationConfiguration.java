@@ -55,7 +55,7 @@ import org.eclipse.hawkbit.repository.event.remote.EventEntityManager;
 import org.eclipse.hawkbit.repository.event.remote.EventEntityManagerHolder;
 import org.eclipse.hawkbit.repository.event.remote.TargetPollEvent;
 import org.eclipse.hawkbit.repository.jpa.aspects.ExceptionMappingAspectHandler;
-import org.eclipse.hawkbit.repository.jpa.autoassign.AutoAssignChecker;
+import org.eclipse.hawkbit.repository.jpa.autoassign.DefaultAutoAssignExecutor;
 import org.eclipse.hawkbit.repository.jpa.autoassign.AutoAssignScheduler;
 import org.eclipse.hawkbit.repository.jpa.autocleanup.AutoActionCleanup;
 import org.eclipse.hawkbit.repository.jpa.autocleanup.AutoCleanupScheduler;
@@ -795,7 +795,7 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
     }
 
     /**
-     * {@link AutoAssignChecker} bean.
+     * {@link DefaultAutoAssignExecutor} bean.
      *
      * @param targetManagement
      *            to get targets
@@ -803,13 +803,13 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      *            to assign distribution sets to targets
      * @param transactionManager
      *            to run transactions
-     * @return a new {@link AutoAssignChecker}
+     * @return a new {@link DefaultAutoAssignExecutor}
      */
     @Bean
     @ConditionalOnMissingBean
     AutoAssignExecutor autoAssignExecutor(final TargetManagement targetManagement,
             final DeploymentManagement deploymentManagement, final PlatformTransactionManager transactionManager) {
-        return new AutoAssignChecker(targetManagement, deploymentManagement, transactionManager);
+        return new DefaultAutoAssignExecutor(targetManagement, deploymentManagement, transactionManager);
     }
 
     /**
@@ -828,7 +828,7 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      *            to run a check as tenant
      * @param lockRegistry
      *            to lock the tenant for auto assignment
-     * @return a new {@link AutoAssignChecker}
+     * @return a new {@link DefaultAutoAssignExecutor}
      */
     @Bean
     @ConditionalOnMissingBean

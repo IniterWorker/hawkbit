@@ -39,15 +39,15 @@ import io.qameta.allure.Step;
 import io.qameta.allure.Story;
 
 /**
- * Test class for {@link AutoAssignChecker}.
+ * Test class for {@link DefaultAutoAssignExecutor}.
  *
  */
 @Feature("Component Tests - Repository")
 @Story("Auto assign checker")
-class AutoAssignCheckerTest extends AbstractJpaIntegrationTest {
+class AutoAssignExecutorTest extends AbstractJpaIntegrationTest {
 
     @Autowired
-    private AutoAssignChecker autoAssignChecker;
+    private DefaultAutoAssignExecutor autoAssignChecker;
 
     @Autowired
     private ActionRepository actionRepository;
