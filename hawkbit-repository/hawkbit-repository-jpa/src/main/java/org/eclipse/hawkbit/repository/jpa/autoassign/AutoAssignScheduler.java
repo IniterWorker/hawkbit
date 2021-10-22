@@ -21,13 +21,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class AutoAssignScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(AutoAssignScheduler.class);
 
-    private static final String PROP_SCHEDULER_DELAY_PLACEHOLDER = "${hawkbit.autoassign.scheduler.fixedDelay:2000}";
+    protected static final String PROP_SCHEDULER_DELAY_PLACEHOLDER = "${hawkbit.autoassign.scheduler.fixedDelay:2000}";
 
-    private final SystemManagement systemManagement;
-
-    private final SystemSecurityContext systemSecurityContext;
-
-    private final TargetFilterQueryManagement targetFilterQueryManagement;
+    protected final SystemManagement systemManagement;
+    protected final SystemSecurityContext systemSecurityContext;
+    protected final TargetFilterQueryManagement targetFilterQueryManagement;
 
     /**
      * Instantiates a new AutoAssignScheduler
@@ -66,9 +64,13 @@ public class AutoAssignScheduler {
             // iterate through all tenants and execute the rollout check for
             // each tenant seperately.
 
-            systemManagement.forEachTenant(tenant -> targetFilterQueryManagement.handleAutoAssignments());
+            systemManagement.forEachTenant(this::handleAutoAssignmentForTenant);
 
             return null;
         });
+    }
+
+    protected void handleAutoAssignmentForTenant(final String tenant) {
+        targetFilterQueryManagement.handleAutoAssignments();
     }
 }
