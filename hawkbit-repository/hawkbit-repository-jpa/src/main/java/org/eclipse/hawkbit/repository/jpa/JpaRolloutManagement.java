@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
 
+import javax.persistence.EntityManager;
 import javax.validation.ConstraintDeclarationException;
 import javax.validation.ValidationException;
 
@@ -127,6 +128,9 @@ public class JpaRolloutManagement extends AbstractRolloutManagement {
 
     @Autowired
     private RolloutStatusCache rolloutStatusCache;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private final RolloutExecutor rolloutExecutor;
 
@@ -428,7 +432,10 @@ public class JpaRolloutManagement extends AbstractRolloutManagement {
         final String transactionId = transactionNamePrefix + "-" + rollout.getId();
         try {
             DeploymentHelper.runInNewTransaction(txManager, transactionId, status -> {
-                runInUserContext(rollout, () -> rolloutExecutor.execute(rollout));
+                // we need to add the currently processed rollout to current
+                // transaction persistence context
+                final Rollout managedRollout = entityManager.merge(rollout);
+                runInUserContext(rollout, () -> rolloutExecutor.execute(managedRollout));
                 return null;
             });
         } catch (final RuntimeException ex) {
