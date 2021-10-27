@@ -558,9 +558,10 @@ public interface DeploymentManagement {
      *            of the action that shall be confirmed or declined
      * @param isConfirmed
      *            flag if action is confirmed or declined
-     * @param remark
+     * @param actionStatusMessages
      *            optional remark on decision
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_UPDATE_TARGET)
-    void confirmOrDeclineAction(final Long actionId, final boolean isConfirmed, final String remark);
+    void confirmOrDeclineAction(final Long actionId, final boolean isConfirmed,
+            final List<String> actionStatusMessages);
 }

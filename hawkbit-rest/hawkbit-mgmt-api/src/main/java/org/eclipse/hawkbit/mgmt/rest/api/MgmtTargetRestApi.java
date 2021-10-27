@@ -15,7 +15,7 @@ import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadata;
 import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadataBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;
-import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConfirmOrDeclineRemark;
+import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConsentPost;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionRequestBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionStatus;
 import org.eclipse.hawkbit.mgmt.json.model.distributionset.MgmtDistributionSet;
@@ -268,30 +268,17 @@ public interface MgmtTargetRestApi {
             @RequestParam(value = MgmtRestConstants.REQUEST_PARAMETER_SORTING, required = false) String sortParam);
 
     /**
-     * Handles the POST request to confirm an update action of a specific target
+     * Handles the POST request to provide/deny an update action of a specific
+     * target
      *
      * @param targetId
      *            of the action
      * @param actionId
      *            of the action to confirm
      */
-    @PostMapping(value = "/{targetId}/actions/{actionId}/confirm")
-    ResponseEntity<Void> confirmAction(@PathVariable("targetId") String targetId,
-            @PathVariable("actionId") Long actionId,
-            @RequestBody(required = false) MgmtActionConfirmOrDeclineRemark remark);
-
-    /**
-     * Handles the POST request to decline an update action of a specific target
-     *
-     * @param targetId
-     *            of the action
-     * @param actionId
-     *            of the action to decline
-     */
-    @PostMapping(value = "/{targetId}/actions/{actionId}/decline")
-    ResponseEntity<Void> declineAction(@PathVariable("targetId") String targetId,
-            @PathVariable("actionId") Long actionId,
-            @RequestBody(required = false) MgmtActionConfirmOrDeclineRemark remark);
+    @PostMapping(value = "/{targetId}/actions/{actionId}/consent")
+    ResponseEntity<Void> consentAction(@PathVariable("targetId") String targetId,
+            @PathVariable("actionId") Long actionId, @RequestBody MgmtActionConsentPost actionConsentPost);
 
     /**
      * Handles the GET request of retrieving the assigned distribution set of an

@@ -9,8 +9,8 @@
 package org.eclipse.hawkbit.mgmt.rest.resource;
 
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,7 +24,7 @@ import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadata;
 import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadataBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;
-import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConfirmOrDeclineRemark;
+import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConsentPost;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionRequestBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionStatus;
 import org.eclipse.hawkbit.mgmt.json.model.distributionset.MgmtActionType;
@@ -41,7 +41,6 @@ import org.eclipse.hawkbit.repository.DeploymentManagement;
 import org.eclipse.hawkbit.repository.EntityFactory;
 import org.eclipse.hawkbit.repository.OffsetBasedPageRequest;
 import org.eclipse.hawkbit.repository.TargetManagement;
-import org.eclipse.hawkbit.repository.builder.ActionStatusCreate;
 import org.eclipse.hawkbit.repository.exception.EntityNotFoundException;
 import org.eclipse.hawkbit.repository.model.Action;
 import org.eclipse.hawkbit.repository.model.ActionStatus;
@@ -58,6 +57,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -287,45 +287,24 @@ public class MgmtTargetResource implements MgmtTargetRestApi {
     }
 
     @Override
-    public ResponseEntity<Void> confirmAction(final String targetId, final Long actionId,
-            final MgmtActionConfirmOrDeclineRemark remark) {
+    public ResponseEntity<Void> consentAction(final String targetId, final Long actionId,
+            final MgmtActionConsentPost actionConsent) {
 
         if (!isActionAssignedToTarget(actionId, targetId)) {
             LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
             return ResponseEntity.notFound().build();
         }
 
-        final ActionStatusCreate confirmActionStatus = entityFactory.actionStatus().create(actionId)
-                .status(Action.Status.RUNNING)
-                .messages(Collections.singleton("CONFIRMED update for action " + actionId + getRemarkFromBody(remark)));
-        systemSecurityContext
-                .runAsControllerCurrentTenant(() -> controllerManagement.addUpdateActionStatus(confirmActionStatus));
-        // deploymentManagement.confirmOrDeclineAction(actionId, true,
-        // getRemarkFromBody(remark));
-        return ResponseEntity.ok().build();
-    }
-
-    @Override
-    public ResponseEntity<Void> declineAction(final String targetId, final Long actionId,
-            final MgmtActionConfirmOrDeclineRemark remark) {
-
-        if (!isActionAssignedToTarget(actionId, targetId)) {
-            LOG.warn(ACTION_TARGET_MISSING_ASSIGN_WARN, actionId, targetId);
-            return ResponseEntity.notFound().build();
+        final List<String> actionStatusMessages = new ArrayList<>();
+        actionStatusMessages.add("Consent " + actionConsent.getConsent() + " by user " + actionConsent.getConsent());
+        if (!StringUtils.isEmpty(actionConsent.getRemark())) {
+            actionStatusMessages.add("Remark: " + actionConsent.getRemark());
         }
 
-        final ActionStatusCreate declineActionStatus = entityFactory.actionStatus().create(actionId)
-                .status(Action.Status.RUNNING)
-                .messages(Collections.singleton("DECLINED update for action " + actionId + getRemarkFromBody(remark)));
-        systemSecurityContext
-                .runAsControllerCurrentTenant(() -> controllerManagement.addUpdateActionStatus(declineActionStatus));
-        // deploymentManagement.confirmOrDeclineAction(actionId, false,
-        // getRemarkFromBody(remark));
-        return ResponseEntity.ok().build();
-    }
+        deploymentManagement.confirmOrDeclineAction(actionId,
+                actionConsent.getConsent() == MgmtActionConsentPost.Consent.PROVIDED, actionStatusMessages);
 
-    private String getRemarkFromBody(final MgmtActionConfirmOrDeclineRemark remark) {
-        return remark == null ? "" : " - Remark: " + remark.getRemark();
+        return ResponseEntity.ok().build();
     }
 
     @Override

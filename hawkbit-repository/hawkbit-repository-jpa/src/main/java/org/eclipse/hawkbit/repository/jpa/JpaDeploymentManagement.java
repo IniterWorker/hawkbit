@@ -957,9 +957,30 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
     }
 
     @Override
-    public void confirmOrDeclineAction(final Long actionId, final boolean isConfirmed, final String remark) {
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @Retryable(include = {
+            ConcurrencyFailureException.class }, maxAttempts = Constants.TX_RT_MAX, backoff = @Backoff(delay = Constants.TX_RT_DELAY))
+    public void confirmOrDeclineAction(final Long actionId, final boolean isConfirmed,
+            final List<String> actionStatusMessages) {
         final JpaAction action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new EntityNotFoundException(Action.class, actionId));
 
+        if (!action.isActive() || action.isCancelingOrCanceled()) {
+            throw new IllegalStateException("Updating consent on a canceled or closed action is not allowed!");
+        }
+
+        final JpaActionStatus consentActionStatus = new JpaActionStatus(action, Status.RUNNING,
+                System.currentTimeMillis());
+        actionStatusMessages.forEach(consentActionStatus::addMessage);
+
+        actionStatusRepository.save(consentActionStatus);
+
+        if (!isConfirmed) {
+            actionStatusRepository.save(new JpaActionStatus(action, Status.WARNING, System.currentTimeMillis(),
+                    "Stopped action for declined update"));
+            DeploymentHelper.successCancellation(action, actionRepository, targetRepository);
+            action.setStatus(Status.ERROR);
+            actionRepository.save(action);
+        }
     }
 }
