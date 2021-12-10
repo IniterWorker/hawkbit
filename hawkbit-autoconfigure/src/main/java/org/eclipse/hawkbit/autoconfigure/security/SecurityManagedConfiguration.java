@@ -55,7 +55,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
-import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -63,13 +62,11 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDecisionManager;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
-import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
 import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -118,7 +115,7 @@ import org.vaadin.spring.security.web.VaadinRedirectStrategy;
  */
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true, mode = AdviceMode.ASPECTJ, proxyTargetClass = true, securedEnabled = true)
+@EnableGlobalMethodSecurity(prePostEnabled = true, proxyTargetClass = true, securedEnabled = true)
 @Order(value = Ordered.HIGHEST_PRECEDENCE)
 @PropertySource("classpath:/hawkbit-security-defaults.properties")
 public class SecurityManagedConfiguration {
@@ -131,8 +128,8 @@ public class SecurityManagedConfiguration {
      * @return the {@link UserAuthenticationFilter} to include into the hawkBit
      *         security configuration.
      * @throws Exception
-     *             lazy bean exception maybe if the authentication manager
-     *             cannot be instantiated
+     *             lazy bean exception maybe if the authentication manager cannot be
+     *             instantiated
      */
     @Bean
     @ConditionalOnMissingBean
@@ -188,14 +185,13 @@ public class SecurityManagedConfiguration {
         }
 
         /**
-         * Filter to protect the hawkBit server DDI interface against to many
-         * requests.
+         * Filter to protect the hawkBit server DDI interface against to many requests.
          *
          * @param securityProperties
          *            for filter configuration
          *
-         * @return the spring filter registration bean for registering a denial
-         *         of service protection filter in the filter chain
+         * @return the spring filter registration bean for registering a denial of
+         *         service protection filter in the filter chain
          */
         @Bean
         @ConditionalOnProperty(prefix = "hawkbit.server.security.dos.filter", name = "enabled", matchIfMissing = true)
@@ -272,8 +268,7 @@ public class SecurityManagedConfiguration {
     }
 
     /**
-     * {@link WebSecurityConfigurer} for the hawkBit server DDI download
-     * interface.
+     * {@link WebSecurityConfigurer} for the hawkBit server DDI download interface.
      */
     @Configuration
     @Order(301)
@@ -304,14 +299,14 @@ public class SecurityManagedConfiguration {
         }
 
         /**
-         * Filter to protect the hawkBit server DDI download interface against
-         * to many requests.
+         * Filter to protect the hawkBit server DDI download interface against to many
+         * requests.
          *
          * @param securityProperties
          *            for filter configuration
          *
-         * @return the spring filter registration bean for registering a denial
-         *         of service protection filter in the filter chain
+         * @return the spring filter registration bean for registering a denial of
+         *         service protection filter in the filter chain
          */
         @Bean
         @ConditionalOnProperty(prefix = "hawkbit.server.security.dos.filter", name = "enabled", matchIfMissing = true)
@@ -394,8 +389,8 @@ public class SecurityManagedConfiguration {
     }
 
     /**
-     * Filter to protect the hawkBit server system management interface against
-     * to many requests.
+     * Filter to protect the hawkBit server system management interface against to
+     * many requests.
      *
      * @param securityProperties
      *            for filter configuration
@@ -495,14 +490,14 @@ public class SecurityManagedConfiguration {
         private SystemSecurityContext systemSecurityContext;
 
         /**
-         * Filter to protect the hawkBit server Management interface against to
-         * many requests.
+         * Filter to protect the hawkBit server Management interface against to many
+         * requests.
          *
          * @param securityProperties
          *            for filter configuration
          *
-         * @return the spring filter registration bean for registering a denial
-         *         of service protection filter in the filter chain
+         * @return the spring filter registration bean for registering a denial of
+         *         service protection filter in the filter chain
          */
         @Bean
         @ConditionalOnProperty(prefix = "hawkbit.server.security.dos.filter", name = "enabled", matchIfMissing = true)
@@ -629,8 +624,8 @@ public class SecurityManagedConfiguration {
          * @param securityProperties
          *            for filter configuration
          *
-         * @return the spring filter registration bean for registering a denial
-         *         of service protection filter in the filter chain
+         * @return the spring filter registration bean for registering a denial of
+         *         service protection filter in the filter chain
          */
         @Bean
         @ConditionalOnProperty(prefix = "hawkbit.server.security.dos.ui-filter", name = "enabled", matchIfMissing = true)
@@ -655,7 +650,7 @@ public class SecurityManagedConfiguration {
         /**
          * Overwriting VaadinAuthenticationSuccessHandler of default
          * VaadinSharedSecurityConfiguration
-         * 
+         *
          * @return the vaadin success authentication handler
          */
         @Primary
@@ -779,24 +774,6 @@ public class SecurityManagedConfiguration {
         public void configure(final WebSecurity webSecurity) throws Exception {
             // No security for static content
             webSecurity.ignoring().antMatchers("/documentation/**", "/VAADIN/**", "/*.*", "/docs/**");
-        }
-
-        /**
-         * Configuration that defines the {@link AccessDecisionManager} bean for
-         * UI method security used by the Vaadin Servlet. Notice: we can not use
-         * the top-level method security configuration because
-         * {@link AdviceMode.ASPECTJ} is not supported.
-         */
-        @Configuration
-        @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true, proxyTargetClass = true)
-        @ConditionalOnClass(MgmtUiConfiguration.class)
-        static class UIMethodSecurity extends GlobalMethodSecurityConfiguration {
-
-            @Bean(name = VaadinSharedSecurityConfiguration.ACCESS_DECISION_MANAGER_BEAN)
-            @Override
-            protected AccessDecisionManager accessDecisionManager() {
-                return super.accessDecisionManager();
-            }
         }
     }
 }
