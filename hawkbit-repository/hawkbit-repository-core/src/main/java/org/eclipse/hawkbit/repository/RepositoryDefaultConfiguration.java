@@ -9,7 +9,7 @@
 package org.eclipse.hawkbit.repository;
 
 import org.eclipse.hawkbit.ControllerPollProperties;
-import org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties;
+import org.eclipse.hawkbit.tenancy.configuration.HawkbitTenantConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -20,7 +20,7 @@ import org.springframework.context.annotation.PropertySource;
  */
 @Configuration
 @EnableConfigurationProperties({ RepositoryProperties.class, ControllerPollProperties.class,
-        TenantConfigurationProperties.class })
+        HawkbitTenantConfigurationProperties.class })
 @PropertySource("classpath:/hawkbit-repository-defaults.properties")
 public class RepositoryDefaultConfiguration {
 

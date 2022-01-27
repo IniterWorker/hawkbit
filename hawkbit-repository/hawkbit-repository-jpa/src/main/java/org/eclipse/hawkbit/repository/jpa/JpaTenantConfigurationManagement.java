@@ -61,7 +61,7 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
     public <T extends Serializable> TenantConfigurationValue<T> getConfigurationValue(final String configurationKeyName,
             final Class<T> propertyType) {
 
-        final TenantConfigurationKey configurationKey = tenantConfigurationProperties.fromKeyName(configurationKeyName);
+        final TenantConfigurationKey configurationKey = getConfigurationKey(configurationKeyName);
 
         validateTenantConfigurationDataType(configurationKey, propertyType);
 
@@ -113,7 +113,7 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
     @Override
     public <T extends Serializable> TenantConfigurationValue<T> getConfigurationValue(
             final String configurationKeyName) {
-        final TenantConfigurationKey configurationKey = tenantConfigurationProperties.fromKeyName(configurationKeyName);
+        final TenantConfigurationKey configurationKey = getConfigurationKey(configurationKeyName);
 
         return getConfigurationValue(configurationKeyName, configurationKey.getDataType());
     }
@@ -121,7 +121,7 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
     @Override
     public <T> T getGlobalConfigurationValue(final String configurationKeyName, final Class<T> propertyType) {
 
-        final TenantConfigurationKey key = tenantConfigurationProperties.fromKeyName(configurationKeyName);
+        final TenantConfigurationKey key = getConfigurationKey(configurationKeyName);
 
         if (!key.getDataType().isAssignableFrom(propertyType)) {
             throw new TenantConfigurationValidatorException(String.format(
@@ -139,7 +139,7 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
     public <T extends Serializable> TenantConfigurationValue<T> addOrUpdateConfiguration(
             final String configurationKeyName, final T value) {
 
-        final TenantConfigurationKey configurationKey = tenantConfigurationProperties.fromKeyName(configurationKeyName);
+        final TenantConfigurationKey configurationKey = getConfigurationKey(configurationKeyName);
 
         if (!configurationKey.getDataType().isAssignableFrom(value.getClass())) {
             throw new TenantConfigurationValidatorException(String.format(
@@ -206,6 +206,10 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
             LOG.debug("The Multi-Assignments '{}' feature cannot be disabled.", key);
             throw new TenantConfigurationValueChangeNotAllowedException();
         }
+    }
+
+    protected TenantConfigurationKey getConfigurationKey(final String configurationKeyName) {
+        return tenantConfigurationProperties.fromKeyName(configurationKeyName);
     }
 
     @Override

@@ -40,6 +40,7 @@ import org.eclipse.hawkbit.security.SpringSecurityAuditorAware;
 import org.eclipse.hawkbit.security.SystemSecurityContext;
 import org.eclipse.hawkbit.tenancy.TenantAware;
 import org.eclipse.hawkbit.tenancy.UserAuthoritiesResolver;
+import org.eclipse.hawkbit.tenancy.configuration.HawkbitTenantConfigurationProperties;
 import org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
@@ -75,7 +76,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @EnableGlobalMethodSecurity(prePostEnabled = true, mode = AdviceMode.PROXY, proxyTargetClass = false, securedEnabled = true)
 @EnableConfigurationProperties({ HawkbitServerProperties.class, DdiSecurityProperties.class,
         ArtifactUrlHandlerProperties.class, ArtifactFilesystemProperties.class, HawkbitSecurityProperties.class,
-        ControllerPollProperties.class, TenantConfigurationProperties.class })
+        ControllerPollProperties.class, HawkbitTenantConfigurationProperties.class })
 @Profile("test")
 @EnableAutoConfiguration
 @PropertySource("classpath:/hawkbit-test-defaults.properties")

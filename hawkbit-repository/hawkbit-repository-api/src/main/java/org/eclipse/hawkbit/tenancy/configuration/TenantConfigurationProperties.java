@@ -9,58 +9,44 @@
 package org.eclipse.hawkbit.tenancy.configuration;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.hawkbit.ControllerPollProperties;
 import org.eclipse.hawkbit.HawkbitServerProperties.Anonymous.Download;
-import org.eclipse.hawkbit.repository.exception.InvalidTenantConfigurationKeyException;
 import org.eclipse.hawkbit.tenancy.configuration.validator.TenantConfigurationStringValidator;
 import org.eclipse.hawkbit.tenancy.configuration.validator.TenantConfigurationValidator;
 import org.eclipse.hawkbit.tenancy.configuration.validator.TenantConfigurationValidatorException;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 
 /**
  * Properties for tenant configuration default values.
  *
  */
-@ConfigurationProperties("hawkbit.server.tenant")
-public class TenantConfigurationProperties {
-
-    private final Map<String, TenantConfigurationKey> configuration = new HashMap<>();
+public interface TenantConfigurationProperties {
 
     /**
      * @return full map of all configured tenant properties
      */
-    public Map<String, TenantConfigurationKey> getConfiguration() {
-        return configuration;
-    }
+    Map<String, TenantConfigurationKey> getConfiguration();
 
     /**
      * @return full list of {@link TenantConfigurationKey}s
      */
-    public Collection<TenantConfigurationKey> getConfigurationKeys() {
-        return configuration.values();
-    }
+    Collection<TenantConfigurationKey> getConfigurationKeys();
 
     /**
      * @param keyName
      *            name of the TenantConfigurationKey
      * @return the TenantConfigurationKey with the name keyName
      */
-    public TenantConfigurationKey fromKeyName(final String keyName) {
-        return configuration.values().stream().filter(conf -> conf.getKeyName().equals(keyName)).findAny()
-                .orElseThrow(() -> new InvalidTenantConfigurationKeyException(
-                        "The given configuration key " + keyName + " does not exist."));
-    }
+    TenantConfigurationKey fromKeyName(final String keyName);
 
     /**
      * Tenant specific configurations which can be configured for each tenant
      * separately by means of override of the system defaults.
      *
      */
-    public static class TenantConfigurationKey {
+    class TenantConfigurationKey {
 
         /**
          * Header based authentication enabled.
@@ -161,7 +147,7 @@ public class TenantConfigurationProperties {
         }
 
         /**
-         * 
+         *
          * @return the data type of the tenant configuration value. (e.g.
          *         Integer.class, String.class)
          */
@@ -193,7 +179,7 @@ public class TenantConfigurationProperties {
         /**
          * validates if a object matches the allowed data format of the
          * corresponding key
-         * 
+         *
          * @param context
          *            application context
          * @param value
