@@ -524,16 +524,16 @@ public class RolloutGrid extends AbstractGrid<ProxyRollout, String> {
     private ConfirmationDialog createTriggerNextGroupDialog(final Long rolloutId) {
         final String caption = i18n.getMessage("caption.rollout.confirm.trigger.next");
         final String question = i18n.getMessage("message.rollout.confirm.trigger.next");
-        return new ConfirmationDialog(i18n, caption, question, ok -> {
-            if (Boolean.TRUE.equals(ok)) {
-                try {
-                    rolloutManagement.triggerNextGroup(rolloutId);
-                    uiNotification.displaySuccess(i18n.getMessage("message.rollout.trigger.next.group.success"));
-                } catch (final RolloutIllegalStateException e) {
-                    LOGGER.warn("Error on manually triggering next rollout group: {}", e.getMessage());
-                    uiNotification.displayValidationError(i18n.getMessage("message.rollout.trigger.next.group.error"));
-                }
-            }
-        }, UIComponentIdProvider.ROLLOUT_TRIGGER_NEXT_CONFIRMATION_DIALOG);
+        return ConfirmationDialog.newBuilder(i18n, UIComponentIdProvider.ROLLOUT_TRIGGER_NEXT_CONFIRMATION_DIALOG)
+                .caption(caption).question(question).onSaveOrUpdate(() -> {
+                    try {
+                        rolloutManagement.triggerNextGroup(rolloutId);
+                        uiNotification.displaySuccess(i18n.getMessage("message.rollout.trigger.next.group.success"));
+                    } catch (final RolloutIllegalStateException e) {
+                        LOGGER.warn("Error on manually triggering next rollout group: {}", e.getMessage());
+                        uiNotification
+                                .displayValidationError(i18n.getMessage("message.rollout.trigger.next.group.error"));
+                    }
+                }).build();
     }
 }

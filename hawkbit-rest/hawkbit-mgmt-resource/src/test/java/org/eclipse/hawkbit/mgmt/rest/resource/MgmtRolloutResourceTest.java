@@ -1215,7 +1215,8 @@ class MgmtRolloutResourceTest extends AbstractManagementApiIntegrationTest {
 
     private Rollout createRollout(final String name, final int amountGroups, final long distributionSetId,
             final String targetFilterQuery, final boolean confirmationRequired) {
-        final Rollout rollout = createRolloutInCreatingSatate(name, amountGroups, distributionSetId, targetFilterQuery);
+        final Rollout rollout = createRolloutInCreatingState(name, amountGroups, distributionSetId, targetFilterQuery,
+                confirmationRequired);
 
         // Run here, because Scheduler is disabled during tests
         rolloutManagement.handleRollouts();
@@ -1223,8 +1224,8 @@ class MgmtRolloutResourceTest extends AbstractManagementApiIntegrationTest {
         return rolloutManagement.get(rollout.getId()).orElseThrow(NoSuchElementException::new);
     }
 
-    private Rollout createRolloutInCreatingSatate(final String name, final int amountGroups,
-            final long distributionSetId, final String targetFilterQuery) {
+    private Rollout createRolloutInCreatingState(final String name, final int amountGroups,
+            final long distributionSetId, final String targetFilterQuery, final boolean confirmationRequired) {
         return rolloutManagement.create(
                 entityFactory.rollout().create().name(name).set(distributionSetId).targetFilterQuery(targetFilterQuery),
                 amountGroups, confirmationRequired, new RolloutGroupConditionBuilder().withDefaults()
@@ -1260,7 +1261,8 @@ class MgmtRolloutResourceTest extends AbstractManagementApiIntegrationTest {
         final DistributionSet dsA = testdataFactory.createDistributionSet("");
 
         // CREATING state
-        final Rollout rollout = createRolloutInCreatingSatate("rollout1", 3, dsA.getId(), "controllerId==rollout*");
+        final Rollout rollout = createRolloutInCreatingState("rollout1", 3, dsA.getId(), "controllerId==rollout*",
+                false);
         triggerNextGroupAndExpect(rollout, status().isBadRequest());
 
         // READY state
