@@ -247,9 +247,11 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param distributionSetTypeManagement
-     *            to loading the {@link DistributionSetType}
+     *                                      to loading the
+     *                                      {@link DistributionSetType}
      * @param softwareManagement
-     *            for loading {@link DistributionSet#getModules()}
+     *                                      for loading
+     *                                      {@link DistributionSet#getModules()}
      * @return DistributionSetBuilder bean
      */
     @Bean
@@ -265,8 +267,8 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param dsTypeManagement
-     *            for loading
-     *            {@link TargetType#getCompatibleDistributionSetTypes()}
+     *                         for loading
+     *                         {@link TargetType#getCompatibleDistributionSetTypes()}
      * @return TargetTypeBuilder bean
      */
     @Bean
@@ -282,9 +284,10 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param softwareManagement
-     *            for loading
-     *            {@link DistributionSetType#getMandatoryModuleTypes()} and
-     *            {@link DistributionSetType#getOptionalModuleTypes()}
+     *                           for loading
+     *                           {@link DistributionSetType#getMandatoryModuleTypes()}
+     *                           and
+     *                           {@link DistributionSetType#getOptionalModuleTypes()}
      * @return DistributionSetTypeBuilder bean
      */
     @Bean
@@ -295,7 +298,8 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param softwareModuleTypeManagement
-     *            for loading {@link SoftwareModule#getType()}
+     *                                     for loading
+     *                                     {@link SoftwareModule#getType()}
      * @return SoftwareModuleBuilder bean
      */
     @Bean
@@ -305,7 +309,8 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param distributionSetManagement
-     *            for loading {@link Rollout#getDistributionSet()}
+     *                                  for loading
+     *                                  {@link Rollout#getDistributionSet()}
      * @return RolloutBuilder bean
      */
     @Bean
@@ -315,8 +320,8 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
 
     /**
      * @param distributionSetManagement
-     *            for loading
-     *            {@link TargetFilterQuery#getAutoAssignDistributionSet()}
+     *                                  for loading
+     *                                  {@link TargetFilterQuery#getAutoAssignDistributionSet()}
      * @return TargetFilterQueryBuilder bean
      */
     @Bean
@@ -582,19 +587,20 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * {@link JpaTargetFilterQueryManagement} bean.
      *
      * @param targetFilterQueryRepository
-     *            holding {@link TargetFilterQuery} entities
+     *                                    holding {@link TargetFilterQuery} entities
      * @param targetManagement
-     *            managing {@link Target} entities
+     *                                    managing {@link Target} entities
      * @param virtualPropertyReplacer
-     *            for RSQL handling
+     *                                    for RSQL handling
      * @param distributionSetManagement
-     *            for auto assign DS access
+     *                                    for auto assign DS access
      * @param quotaManagement
-     *            to access quotas
+     *                                    to access quotas
      * @param properties
-     *            JPA properties
+     *                                    JPA properties
      * @param tenantAware
-     *            the {@link TenantAware} bean holding the tenant information
+     *                                    the {@link TenantAware} bean holding the
+     *                                    tenant information
      *
      * @return a new {@link TargetFilterQueryManagement}
      */
@@ -674,7 +680,7 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
         return new JpaSoftwareModuleTypeManagement(distributionSetTypeRepository, softwareModuleTypeRepository,
                 virtualPropertyReplacer, softwareModuleRepository, properties.getDatabase());
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     RolloutHandler rolloutHandler(final TenantAware tenantAware, final RolloutManagement rolloutManagement,
@@ -698,6 +704,11 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
                 rolloutGroupRepository, afterCommit, tenantAware, rolloutGroupManagement, quotaManagement,
                 deploymentManagement, targetManagement, eventPublisherHolder, txManager, rolloutApprovalStrategy,
                 evaluationManager, rolloutManagement);
+    }
+
+    @Bean
+    TracerHolder tracerHolder() {
+        return TracerHolder.getInstance();
     }
 
     @Bean
@@ -824,9 +835,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * {@link EventEntityManager} bean.
      *
      * @param aware
-     *            the tenant aware
+     *                      the tenant aware
      * @param entityManager
-     *            the entitymanager
+     *                      the entitymanager
      * @return a new {@link EventEntityManager}
      */
     @Bean
@@ -839,13 +850,13 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * {@link AutoAssignChecker} bean.
      *
      * @param targetFilterQueryManagement
-     *            to get all target filter queries
+     *                                    to get all target filter queries
      * @param targetManagement
-     *            to get targets
+     *                                    to get targets
      * @param deploymentManagement
-     *            to assign distribution sets to targets
+     *                                    to assign distribution sets to targets
      * @param transactionManager
-     *            to run transactions
+     *                                    to run transactions
      * @return a new {@link AutoAssignChecker}
      */
     @Bean
@@ -864,15 +875,15 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * auto assign functionality.
      *
      * @param tenantAware
-     *            to run as specific tenant
+     *                              to run as specific tenant
      * @param systemManagement
-     *            to find all tenants
+     *                              to find all tenants
      * @param systemSecurityContext
-     *            to run as system
+     *                              to run as system
      * @param autoAssignChecker
-     *            to run a check as tenant
+     *                              to run a check as tenant
      * @param lockRegistry
-     *            to lock the tenant for auto assignment
+     *                              to lock the tenant for auto assignment
      * @return a new {@link AutoAssignChecker}
      */
     @Bean
@@ -891,9 +902,9 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * {@link AutoActionCleanup} bean.
      *
      * @param deploymentManagement
-     *            Deployment management service
+     *                             Deployment management service
      * @param configManagement
-     *            Tenant configuration service
+     *                             Tenant configuration service
      *
      * @return a new {@link AutoActionCleanup} bean
      */
@@ -907,13 +918,13 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * {@link AutoCleanupScheduler} bean.
      *
      * @param systemManagement
-     *            to find all tenants
+     *                              to find all tenants
      * @param systemSecurityContext
-     *            to run as system
+     *                              to run as system
      * @param lockRegistry
-     *            to lock the tenant for auto assignment
+     *                              to lock the tenant for auto assignment
      * @param cleanupTasks
-     *            a list of cleanup tasks
+     *                              a list of cleanup tasks
      *
      * @return a new {@link AutoCleanupScheduler} bean
      */
@@ -934,11 +945,11 @@ public class RepositoryApplicationConfiguration extends JpaBaseConfiguration {
      * rollout handling functionality.
      *
      * @param systemManagement
-     *            to find all tenants
+     *                              to find all tenants
      * @param rolloutHandler
-     *            to run the rollout handler
+     *                              to run the rollout handler
      * @param systemSecurityContext
-     *            to run as system
+     *                              to run as system
      * @return a new {@link RolloutScheduler} bean.
      */
     @Bean

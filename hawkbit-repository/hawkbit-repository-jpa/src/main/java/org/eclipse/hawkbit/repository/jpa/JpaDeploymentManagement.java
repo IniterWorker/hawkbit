@@ -323,20 +323,25 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
      * D. does not send a {@link TargetAssignDistributionSetEvent}.<br/>
      *
      * @param initiatedBy
-     *            the username of the user who initiated the assignment
+     *                              the username of the user who initiated the
+     *                              assignment
      * @param dsID
-     *            the ID of the distribution set to assign
+     *                              the ID of the distribution set to assign
      * @param targetsWithActionType
-     *            a list of all targets and their action type
+     *                              a list of all targets and their action type
      * @param actionMessage
-     *            an optional message to be written into the action status
+     *                              an optional message to be written into the
+     *                              action status
      * @param assignmentStrategy
-     *            the assignment strategy (online /offline)
+     *                              the assignment strategy (online /offline)
      * @return the assignment result
      *
      * @throws IncompleteDistributionSetException
-     *             if mandatory {@link SoftwareModuleType} are not assigned as
-     *             define by the {@link DistributionSetType}.
+     *                                            if mandatory
+     *                                            {@link SoftwareModuleType} are not
+     *                                            assigned as
+     *                                            define by the
+     *                                            {@link DistributionSetType}.
      */
     private DistributionSetAssignmentResult assignDistributionSetToTargets(final String initiatedBy, final Long dsID,
             final Collection<TargetWithActionType> targetsWithActionType, final String actionMessage,
@@ -604,8 +609,11 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
         long totalActionsCount = 0L;
         long lastStartedActionsCount;
         do {
-            lastStartedActionsCount = startScheduledActionsByRolloutGroupParentInNewTransaction(rolloutId,
-                    distributionSetId, rolloutGroupParentId, ACTION_PAGE_LIMIT);
+            lastStartedActionsCount = TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> startScheduledActionsByRolloutGroupParentInNewTransaction(rolloutId,
+                                    distributionSetId, rolloutGroupParentId, ACTION_PAGE_LIMIT),
+                            "StartScheduledActions");
             totalActionsCount += lastStartedActionsCount;
         } while (lastStartedActionsCount > 0);
 
@@ -615,17 +623,26 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
     private long startScheduledActionsByRolloutGroupParentInNewTransaction(final Long rolloutId,
             final Long distributionSetId, final Long rolloutGroupParentId, final int limit) {
         return DeploymentHelper.runInNewTransaction(txManager, "startScheduledActions-" + rolloutId, status -> {
-            final Page<Action> rolloutGroupActions = findActionsByRolloutAndRolloutGroupParent(rolloutId,
-                    rolloutGroupParentId, limit);
+            final Page<Action> rolloutGroupActions = TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> findActionsByRolloutAndRolloutGroupParent(rolloutId,
+                                    rolloutGroupParentId, limit),
+                            "FindActionsByRolloutGroupParent");
 
             if (rolloutGroupActions.getContent().isEmpty()) {
                 return 0L;
             }
 
-            final List<Action> newTargetAssignments = handleTargetAssignments(rolloutGroupActions);
+            final List<Action> newTargetAssignments = TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> handleTargetAssignments(rolloutGroupActions), "HandleTargetAssignments");
 
             if (!newTargetAssignments.isEmpty()) {
-                onlineDsAssignmentStrategy.sendDeploymentEvents(distributionSetId, newTargetAssignments);
+                TracerHolder.getInstance()
+                        .wrapInChildSpan(
+                                () -> onlineDsAssignmentStrategy.sendDeploymentEvents(distributionSetId,
+                                        newTargetAssignments),
+                                "SendDeploymentEvents");
             }
 
             return rolloutGroupActions.getTotalElements();
@@ -634,9 +651,17 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
 
     private List<Action> handleTargetAssignments(final Page<Action> rolloutGroupActions) {
         // Close actions already assigned and collect pending assignments
-        final List<JpaAction> pendingTargetAssignments = rolloutGroupActions.getContent().stream()
-                .map(JpaAction.class::cast).map(this::closeActionIfSetWasAlreadyAssigned).filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        final List<JpaAction> pendingTargetAssignments = TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            final List<JpaAction> assignments = rolloutGroupActions.getContent().stream()
+                                    .map(JpaAction.class::cast).map(this::closeActionIfSetWasAlreadyAssigned)
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toList());
+                            entityManager.flush();
+                            return assignments;
+                        },
+                        "closeActionsIfDSWasAlreadyAssigned");
         if (pendingTargetAssignments.isEmpty()) {
             return new ArrayList<>(pendingTargetAssignments);
         }
@@ -682,11 +707,33 @@ public class JpaDeploymentManagement extends JpaActionManagement implements Depl
 
     private List<Action> startScheduledActionsAndHandleOpenCancellationFirst(final List<JpaAction> actions) {
         if (!isMultiAssignmentsEnabled()) {
-            closeOrCancelOpenDeviceActions(actions);
+            TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> {
+                                closeOrCancelOpenDeviceActions(actions);
+                                entityManager.flush();
+                            }, "CloseOrCancelOpenActions");
         }
-        final List<JpaAction> savedActions = activateActionsOfRolloutGroup(actions);
-        setInitialActionStatusOfRolloutGroup(savedActions);
-        setAssignmentOnTargets(savedActions);
+        final List<JpaAction> savedActions = TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            final List<JpaAction> actionss = activateActionsOfRolloutGroup(actions);
+                            entityManager.flush();
+                            return actionss;
+                        }, "ActivateActionsOfRolloutGroup");
+        TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            setInitialActionStatusOfRolloutGroup(savedActions);
+                            entityManager.flush();
+                        },
+                        "SetInitialActionStatusOfRolloutGroup");
+        TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            setAssignmentOnTargets(savedActions);
+                            entityManager.flush();
+                        }, "SetAssignmentOnTargets");
         return Collections.unmodifiableList(savedActions);
     }
 

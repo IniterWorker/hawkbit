@@ -29,6 +29,7 @@ import org.eclipse.hawkbit.repository.event.remote.RolloutStoppedEvent;
 import org.eclipse.hawkbit.repository.event.remote.entity.RolloutUpdatedEvent;
 import org.eclipse.hawkbit.repository.exception.EntityNotFoundException;
 import org.eclipse.hawkbit.repository.exception.RolloutIllegalStateException;
+import org.eclipse.hawkbit.repository.jpa.configuration.Constants;
 import org.eclipse.hawkbit.repository.jpa.executor.AfterTransactionCommitExecutor;
 import org.eclipse.hawkbit.repository.jpa.model.JpaAction;
 import org.eclipse.hawkbit.repository.jpa.model.JpaRollout;
@@ -60,6 +61,11 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionException;
 import org.springframework.util.StringUtils;
+
+import com.google.common.collect.Lists;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 
 /**
  * A Jpa implementation of {@link RolloutExecutor}
@@ -105,7 +111,7 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private final RolloutApprovalStrategy rolloutApprovalStrategy;
     private final RolloutGroupEvaluationManager evaluationManager;
     private final RolloutManagement rolloutManagement;
-    
+
     /**
      * Constructor
      */
@@ -141,36 +147,41 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         LOGGER.debug("handle rollout {}", rollout.getId());
 
         switch (rollout.getStatus()) {
-        case CREATING:
-            handleCreateRollout((JpaRollout) rollout);
-            break;
-        case DELETING:
-            handleDeleteRollout((JpaRollout) rollout);
-            break;
-        case READY:
-            handleReadyRollout(rollout);
-            break;
-        case STARTING:
-            handleStartingRollout(rollout);
-            break;
-        case RUNNING:
-            handleRunningRollout((JpaRollout) rollout);
-            break;
-        case STOPPING:
-            handleStopRollout((JpaRollout) rollout);
-            break;
-        default:
-            LOGGER.error("Rollout in status {} not supposed to be handled!", rollout.getStatus());
-            break;
+            case CREATING:
+                TracerHolder.getInstance().wrapInSpan(() -> handleCreateRollout((JpaRollout) rollout),
+                        "HandleCreateRollout-" + rollout.getName());
+                break;
+            case DELETING:
+                TracerHolder.getInstance().wrapInSpan(() -> handleDeleteRollout((JpaRollout) rollout),
+                        "HandleDeleteRollout-" + rollout.getName());
+                break;
+            case READY:
+                handleReadyRollout(rollout);
+                break;
+            case STARTING:
+                TracerHolder.getInstance().wrapInSpan(() -> handleStartingRollout(rollout),
+                        "HandleStartingRollout-" + rollout.getName());
+                break;
+            case RUNNING:
+                handleRunningRollout((JpaRollout) rollout);
+                break;
+            case STOPPING:
+                handleStopRollout((JpaRollout) rollout);
+                break;
+            default:
+                LOGGER.error("Rollout in status {} not supposed to be handled!", rollout.getStatus());
+                break;
         }
     }
 
     private void handleCreateRollout(final JpaRollout rollout) {
         LOGGER.debug("handleCreateRollout called for rollout {}", rollout.getId());
 
-        final List<RolloutGroup> rolloutGroups = rolloutGroupManagement.findByRollout(
-                PageRequest.of(0, quotaManagement.getMaxRolloutGroupsPerRollout(), Sort.by(Direction.ASC, "id")),
-                rollout.getId()).getContent();
+        final List<RolloutGroup> rolloutGroups = TracerHolder.getInstance()
+                .wrapInChildSpan(() -> rolloutGroupManagement.findByRollout(
+                        PageRequest.of(0, quotaManagement.getMaxRolloutGroupsPerRollout(),
+                                Sort.by(Direction.ASC, "id")),
+                        rollout.getId()).getContent(), "GetRolloutGroups");
 
         int readyGroups = 0;
         int totalTargets = 0;
@@ -181,7 +192,9 @@ public class JpaRolloutExecutor implements RolloutExecutor {
                 continue;
             }
 
-            final RolloutGroup filledGroup = fillRolloutGroupWithTargets(rollout, group);
+            final RolloutGroup filledGroup = TracerHolder.getInstance()
+                    .wrapInChildSpan(() -> fillRolloutGroupWithTargets(rollout, group),
+                            "FillGroupWithTargets-" + group.getName());
             if (RolloutGroupStatus.READY == filledGroup.getStatus()) {
                 readyGroups++;
                 totalTargets += filledGroup.getTotalTargets();
@@ -209,23 +222,28 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         LOGGER.debug("handleDeleteRollout called for {}", rollout.getId());
 
         // check if there are actions beyond schedule
-        boolean hardDeleteRolloutGroups = !actionRepository.existsByRolloutIdAndStatusNotIn(rollout.getId(),
-                Status.SCHEDULED);
+        boolean hardDeleteRolloutGroups = TracerHolder.getInstance()
+                .wrapInChildSpan(() -> !actionRepository.existsByRolloutIdAndStatusNotIn(rollout.getId(),
+                        Status.SCHEDULED), "GetActionsThatAreNotScheduled");
         if (hardDeleteRolloutGroups) {
             LOGGER.debug("Rollout {} has no actions other than scheduled -> hard delete", rollout.getId());
-            hardDeleteRollout(rollout);
+            TracerHolder.getInstance().wrapInChildSpan(() -> hardDeleteRollout(rollout), "HardDeleteRollout");
             return;
         }
         // clean up all scheduled actions
-        final Slice<JpaAction> scheduledActions = findScheduledActionsByRollout(rollout);
-        deleteScheduledActions(rollout, scheduledActions);
+        final Slice<JpaAction> scheduledActions = TracerHolder.getInstance()
+                .wrapInChildSpan(() -> findScheduledActionsByRollout(rollout), "FindScheduledActions");
+        TracerHolder.getInstance()
+                .wrapInChildSpan(() -> deleteScheduledActions(rollout, scheduledActions), "DeleteScheduledActions");
 
         // avoid another scheduler round and re-check if all scheduled actions
         // has been cleaned up. we flush first to ensure that the we include the
         // deletion above
-        entityManager.flush();
-        final boolean hasScheduledActionsLeft = actionRepository.countByRolloutIdAndStatus(rollout.getId(),
-                Status.SCHEDULED) > 0;
+        TracerHolder.getInstance()
+                .wrapInChildSpan(() -> entityManager.flush(), "EntityManagerFlush");
+        final boolean hasScheduledActionsLeft = TracerHolder.getInstance()
+                .wrapInChildSpan(() -> actionRepository.countByRolloutIdAndStatus(rollout.getId(),
+                        Status.SCHEDULED) > 0, "GetHasScheduledActionsLeft");
 
         if (hasScheduledActionsLeft) {
             return;
@@ -234,16 +252,20 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         // only hard delete the rollout if no actions are left for the rollout.
         // In case actions are left, they are probably are running or were
         // running before, so only soft delete.
-        hardDeleteRolloutGroups = !actionRepository.existsByRolloutId(rollout.getId());
+        hardDeleteRolloutGroups = TracerHolder.getInstance()
+                .wrapInChildSpan(() -> !actionRepository.existsByRolloutId(rollout.getId()),
+                        "GetActionsExistForRollout");
         if (hardDeleteRolloutGroups) {
-            hardDeleteRollout(rollout);
+            TracerHolder.getInstance().wrapInChildSpan(() -> hardDeleteRollout(rollout), "HardDeleteRolloutAgain");
             return;
         }
 
         // set soft delete
-        rollout.setStatus(RolloutStatus.DELETED);
-        rollout.setDeleted(true);
-        rolloutRepository.save(rollout);
+        TracerHolder.getInstance().wrapInChildSpan(() -> {
+            rollout.setStatus(RolloutStatus.DELETED);
+            rollout.setDeleted(true);
+            rolloutRepository.save(rollout);
+        }, "SoftDeleteRollout");
 
         sendRolloutGroupDeletedEvents(rollout);
     }
@@ -293,8 +315,12 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private void handleStartingRollout(final Rollout rollout) {
         LOGGER.debug("handleStartingRollout called for rollout {}", rollout.getId());
 
-        if (ensureAllGroupsAreScheduled(rollout)) {
-            startFirstRolloutGroup(rollout);
+        if (TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> ensureAllGroupsAreScheduled(rollout), "EnsureAllGroupsAreScheduled")) {
+            TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> startFirstRolloutGroup(rollout), "StartFirstRolloutGroup");
         }
     }
 
@@ -325,6 +351,7 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private void hardDeleteRollout(final JpaRollout rollout) {
         sendRolloutGroupDeletedEvents(rollout);
         rolloutRepository.delete(rollout);
+        entityManager.flush();
     }
 
     private void deleteScheduledActions(final JpaRollout rollout, final Slice<JpaAction> scheduledActions) {
@@ -480,30 +507,46 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         RolloutHelper.verifyRolloutInStatus(rollout, RolloutStatus.STARTING);
         final JpaRollout jpaRollout = (JpaRollout) rollout;
 
-        final List<JpaRolloutGroup> rolloutGroups = rolloutGroupRepository.findByRolloutOrderByIdAsc(jpaRollout);
+        final List<JpaRolloutGroup> rolloutGroups = TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> rolloutGroupRepository.findByRolloutOrderByIdAsc(jpaRollout), "FindRolloutGroups");
         final JpaRolloutGroup rolloutGroup = rolloutGroups.get(0);
         if (rolloutGroup.getParent() != null) {
             throw new RolloutIllegalStateException("First Group is not the first group.");
         }
 
-        deploymentManagement.startScheduledActionsByRolloutGroupParent(rollout.getId(),
-                rollout.getDistributionSet().getId(), null);
+        TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> deploymentManagement.startScheduledActionsByRolloutGroupParent(rollout.getId(),
+                                rollout.getDistributionSet().getId(), null),
+                        "StartScheduledActionsForFirstGroup");
 
-        rolloutGroup.setStatus(RolloutGroupStatus.RUNNING);
-        rolloutGroupRepository.save(rolloutGroup);
+        TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            rolloutGroup.setStatus(RolloutGroupStatus.RUNNING);
+                            rolloutGroupRepository.save(rolloutGroup);
 
-        jpaRollout.setStatus(RolloutStatus.RUNNING);
-        jpaRollout.setLastCheck(0);
-        rolloutRepository.save(jpaRollout);
+                            jpaRollout.setStatus(RolloutStatus.RUNNING);
+                            jpaRollout.setLastCheck(0);
+                            rolloutRepository.save(jpaRollout);
+                        }, "SetRolloutAndFirstGroupAsRunning");
     }
 
     private boolean ensureAllGroupsAreScheduled(final Rollout rollout) {
         final JpaRollout jpaRollout = (JpaRollout) rollout;
 
-        final List<JpaRolloutGroup> groupsToBeScheduled = rolloutGroupRepository.findByRolloutAndStatus(rollout,
-                RolloutGroupStatus.READY);
+        final List<JpaRolloutGroup> groupsToBeScheduled = TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> rolloutGroupRepository.findByRolloutAndStatus(rollout,
+                                RolloutGroupStatus.READY),
+                        "FindRolloutGroupsToSchedule");
         final long scheduledGroups = groupsToBeScheduled.stream()
-                .filter(group -> scheduleRolloutGroup(jpaRollout, group)).count();
+                .filter(group -> TracerHolder.getInstance()
+                        .wrapInChildSpan(
+                                () -> scheduleRolloutGroup(jpaRollout, group),
+                                "ScheduleRolloutGroup-" + group.getName()))
+                .count();
 
         return scheduledGroups == groupsToBeScheduled.size();
     }
@@ -515,24 +558,31 @@ public class JpaRolloutExecutor implements RolloutExecutor {
 
         final String baseFilter = RolloutHelper.getTargetFilterQuery(rollout);
         final String groupTargetFilter;
-        if (StringUtils.isEmpty(group.getTargetFilterQuery())) {
-            groupTargetFilter = baseFilter;
-        } else {
+        if (StringUtils.hasText(group.getTargetFilterQuery())) {
             groupTargetFilter = baseFilter + ";" + group.getTargetFilterQuery();
+        } else {
+            groupTargetFilter = baseFilter;
         }
 
-        final List<Long> readyGroups = RolloutHelper.getGroupsByStatusIncludingGroup(rollout.getRolloutGroups(),
-                RolloutGroupStatus.READY, group);
+        final List<Long> readyGroups = TracerHolder.getInstance()
+                .wrapInChildSpan(() -> RolloutHelper.getGroupsByStatusIncludingGroup(rollout.getRolloutGroups(),
+                        RolloutGroupStatus.READY, group), "GetReadyGroups");
 
+        ;
         final long targetsInGroupFilter = DeploymentHelper.runInNewTransaction(txManager,
                 "countAllTargetsByTargetFilterQueryAndNotInRolloutGroups",
-                count -> targetManagement.countByRsqlAndNotInRolloutGroupsAndCompatible(readyGroups, groupTargetFilter,
-                        rollout.getDistributionSet().getType()));
+                count -> TracerHolder.getInstance()
+                        .wrapInChildSpan(() -> targetManagement.countByRsqlAndNotInRolloutGroupsAndCompatible(
+                                readyGroups, groupTargetFilter,
+                                rollout.getDistributionSet().getType()), "CountTargetsNotInReadyGroups"));
         final long expectedInGroup = Math
                 .round((double) (group.getTargetPercentage() / 100) * (double) targetsInGroupFilter);
+
         final long currentlyInGroup = DeploymentHelper.runInNewTransaction(txManager,
                 "countRolloutTargetGroupByRolloutGroup",
-                count -> rolloutTargetGroupRepository.countByRolloutGroup(group));
+                count -> TracerHolder.getInstance()
+                        .wrapInChildSpan(() -> rolloutTargetGroupRepository.countByRolloutGroup(group),
+                                "CountTargetsInCurrentGroup"));
 
         // Switch the Group status to READY, when there are enough Targets in
         // the Group
@@ -555,29 +605,49 @@ public class JpaRolloutExecutor implements RolloutExecutor {
             group.setStatus(RolloutGroupStatus.READY);
             group.setTotalTargets(
                     DeploymentHelper.runInNewTransaction(txManager, "countRolloutTargetGroupByRolloutGroup",
-                            count -> rolloutTargetGroupRepository.countByRolloutGroup(group)).intValue());
+                            count -> TracerHolder.getInstance()
+                                    .wrapInChildSpan(() -> rolloutTargetGroupRepository.countByRolloutGroup(group),
+                                            "CountTargetsInCurrentGroup"))
+                            .intValue());
             return rolloutGroupRepository.save(group);
 
         } catch (final TransactionException e) {
             LOGGER.warn("Transaction assigning Targets to RolloutGroup failed", e);
+            Span.current().recordException(e);
+            Span.current().setStatus(StatusCode.ERROR);
+
             return group;
         }
     }
 
     private Long assignTargetsToGroupInNewTransaction(final JpaRollout rollout, final RolloutGroup group,
             final String targetFilter, final long limit) {
+        return TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> DeploymentHelper.runInNewTransaction(txManager, "assignTargetsToRolloutGroup", status -> {
+                            final PageRequest pageRequest = PageRequest.of(0, Math.toIntExact(limit));
+                            final List<Long> readyGroups = TracerHolder.getInstance()
+                                    .wrapInChildSpan(
+                                            () -> RolloutHelper.getGroupsByStatusIncludingGroup(
+                                                    rollout.getRolloutGroups(),
+                                                    RolloutGroupStatus.READY, group),
+                                            "GetReadyGroups");
+                            final Slice<Target> targets = TracerHolder.getInstance()
+                                    .wrapInChildSpan(
+                                            () -> targetManagement
+                                                    .findByTargetFilterQueryAndNotInRolloutGroupsAndCompatible(
+                                                            pageRequest, readyGroups, targetFilter,
+                                                            rollout.getDistributionSet().getType()),
+                                            "FindTargetsToAssignToGroup");
 
-        return DeploymentHelper.runInNewTransaction(txManager, "assignTargetsToRolloutGroup", status -> {
-            final PageRequest pageRequest = PageRequest.of(0, Math.toIntExact(limit));
-            final List<Long> readyGroups = RolloutHelper.getGroupsByStatusIncludingGroup(rollout.getRolloutGroups(),
-                    RolloutGroupStatus.READY, group);
-            final Slice<Target> targets = targetManagement.findByTargetFilterQueryAndNotInRolloutGroupsAndCompatible(
-                    pageRequest, readyGroups, targetFilter, rollout.getDistributionSet().getType());
+                            TracerHolder.getInstance()
+                                    .wrapInChildSpan(
+                                            () -> createAssignmentOfTargetsToGroup(targets, group),
+                                            "CreateAssignmentOfTargetsToGroup");
 
-            createAssignmentOfTargetsToGroup(targets, group);
-
-            return Long.valueOf(targets.getNumberOfElements());
-        });
+                            return Long.valueOf(targets.getNumberOfElements());
+                        }),
+                        "AssignTargetsToGroup");
     }
 
     /**
@@ -585,17 +655,27 @@ public class JpaRolloutExecutor implements RolloutExecutor {
      * achieve this. The creation of those Actions is allowed to fail.
      */
     private boolean scheduleRolloutGroup(final JpaRollout rollout, final JpaRolloutGroup group) {
-        final long targetsInGroup = rolloutTargetGroupRepository.countByRolloutGroup(group);
-        final long countOfActions = actionRepository.countByRolloutAndRolloutGroup(rollout, group);
+        final long targetsInGroup = TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> rolloutTargetGroupRepository.countByRolloutGroup(group), "CountTargetsInGroup");
+        final long countOfActions = TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> actionRepository.countByRolloutAndRolloutGroup(rollout, group), "CountActionsByGroup");
 
         long actionsLeft = targetsInGroup - countOfActions;
         if (actionsLeft > 0) {
-            actionsLeft -= createActionsForRolloutGroup(rollout, group);
+            actionsLeft -= TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> createActionsForRolloutGroup(rollout, group), "CreateActionsByGroup");
         }
 
         if (actionsLeft <= 0) {
-            group.setStatus(RolloutGroupStatus.SCHEDULED);
-            rolloutGroupRepository.save(group);
+            TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> {
+                                group.setStatus(RolloutGroupStatus.SCHEDULED);
+                                rolloutGroupRepository.save(group);
+                            }, "SetGroupAsScheduled");
             return true;
         }
         return false;
@@ -606,8 +686,11 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         try {
             long actionsCreated;
             do {
-                actionsCreated = createActionsForTargetsInNewTransaction(rollout.getId(), group.getId(),
-                        TRANSACTION_TARGETS);
+                actionsCreated = TracerHolder.getInstance()
+                        .wrapInChildSpan(
+                                () -> createActionsForTargetsInNewTransaction(rollout.getId(), group.getId(),
+                                        TRANSACTION_TARGETS),
+                                "CreateActionsForTargets");
                 totalActionsCreated += actionsCreated;
             } while (actionsCreated > 0);
 
@@ -621,18 +704,31 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private Long createActionsForTargetsInNewTransaction(final long rolloutId, final long groupId, final int limit) {
         return DeploymentHelper.runInNewTransaction(txManager, "createActionsForTargets", status -> {
             final PageRequest pageRequest = PageRequest.of(0, limit);
-            final Rollout rollout = rolloutRepository.findById(rolloutId)
-                    .orElseThrow(() -> new EntityNotFoundException(Rollout.class, rolloutId));
-            final RolloutGroup group = rolloutGroupRepository.findById(groupId)
-                    .orElseThrow(() -> new EntityNotFoundException(RolloutGroup.class, groupId));
+            final Rollout rollout = TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> rolloutRepository.findById(rolloutId)
+                                    .orElseThrow(() -> new EntityNotFoundException(Rollout.class, rolloutId)),
+                            "GetRollout");
+            final RolloutGroup group = TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> rolloutGroupRepository.findById(groupId)
+                                    .orElseThrow(() -> new EntityNotFoundException(RolloutGroup.class, groupId)),
+                            "GetRolloutGroup");
 
             final DistributionSet distributionSet = rollout.getDistributionSet();
             final ActionType actionType = rollout.getActionType();
             final long forceTime = rollout.getForcedTime();
 
-            final Slice<Target> targets = targetManagement.findByInRolloutGroupWithoutAction(pageRequest, groupId);
+            final Slice<Target> targets = TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> targetManagement.findByInRolloutGroupWithoutAction(pageRequest, groupId),
+                            "FindTargetsInGroupWithoutActions");
             if (targets.getNumberOfElements() > 0) {
-                createScheduledAction(targets.getContent(), distributionSet, actionType, forceTime, rollout, group);
+                TracerHolder.getInstance()
+                        .wrapInChildSpan(
+                                () -> createScheduledActions(targets.getContent(), distributionSet, actionType,
+                                        forceTime, rollout, group),
+                                "CreateScheduledActionsForTargetsInGroup");
             }
 
             return Long.valueOf(targets.getNumberOfElements());
@@ -640,15 +736,16 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     }
 
     private void createAssignmentOfTargetsToGroup(final Slice<Target> targets, final RolloutGroup group) {
-        targets.forEach(target -> rolloutTargetGroupRepository.save(new RolloutTargetGroup(group, target)));
+        rolloutTargetGroupRepository.saveAll(
+                targets.stream().map(target -> new RolloutTargetGroup(group, target)).collect(Collectors.toList()));
     }
 
     /**
-     * Creates an action entry into the action repository. In case of existing
-     * scheduled actions the scheduled actions gets canceled. A scheduled action
-     * is created in-active.
+     * Creates scheduled action entries. In case of existing
+     * scheduled actions, previously scheduled actions are canceled.
+     * A scheduled action is created in-active.
      */
-    private void createScheduledAction(final Collection<Target> targets, final DistributionSet distributionSet,
+    private void createScheduledActions(final Collection<Target> targets, final DistributionSet distributionSet,
             final ActionType actionType, final Long forcedTime, final Rollout rollout,
             final RolloutGroup rolloutGroup) {
         // cancel all current scheduled actions for this target. E.g. an action
@@ -656,24 +753,48 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         // current scheduled action to cancel. E.g. a new scheduled action is
         // created.
         final List<Long> targetIds = targets.stream().map(Target::getId).collect(Collectors.toList());
-        deploymentManagement.cancelInactiveScheduledActionsForTargets(targetIds);
-        targets.forEach(target -> {
+        TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            Lists.partition(targetIds, Constants.MAX_ENTRIES_IN_STATEMENT).forEach(
+                                    deploymentManagement::cancelInactiveScheduledActionsForTargets);
+                            entityManager.flush();
+                        },
+                        "CancelInactiveScheduledActionsForTargets");
 
-            assertActionsPerTargetQuota(target, 1);
+        TracerHolder.getInstance()
+                .wrapInChildSpan(
+                        () -> {
+                            actionRepository.saveAll(targets.stream().map(target -> {
+                                // TODO: optimise
+//                            TracerHolder.getInstance()
+//                                    .wrapInChildSpan(
+//                                            () -> assertActionsPerTargetQuota(target, 1),
+//                                            "AssertActionsPerTargetQuota");
 
-            final JpaAction action = new JpaAction();
-            action.setTarget(target);
-            action.setActive(false);
-            action.setDistributionSet(distributionSet);
-            action.setActionType(actionType);
-            action.setForcedTime(forcedTime);
-            action.setStatus(Status.SCHEDULED);
-            action.setRollout(rollout);
-            action.setRolloutGroup(rolloutGroup);
-            action.setInitiatedBy(rollout.getCreatedBy());
-            rollout.getWeight().ifPresent(action::setWeight);
-            actionRepository.save(action);
-        });
+                                return createAction(target, distributionSet, actionType, forcedTime, rollout,
+                                        rolloutGroup);
+                            }).collect(Collectors.toList()));
+                            entityManager.flush();
+                        }, "CreateActionsForTargets");
+    }
+
+    private JpaAction createAction(final Target target, final DistributionSet distributionSet,
+            final ActionType actionType, final Long forcedTime, final Rollout rollout,
+            final RolloutGroup rolloutGroup) {
+        final JpaAction action = new JpaAction();
+        action.setTarget(target);
+        action.setActive(false);
+        action.setDistributionSet(distributionSet);
+        action.setActionType(actionType);
+        action.setForcedTime(forcedTime);
+        action.setStatus(Status.SCHEDULED);
+        action.setRollout(rollout);
+        action.setRolloutGroup(rolloutGroup);
+        action.setInitiatedBy(rollout.getCreatedBy());
+        rollout.getWeight().ifPresent(action::setWeight);
+
+        return action;
     }
 
     /**
@@ -681,9 +802,9 @@ public class JpaRolloutExecutor implements RolloutExecutor {
      * {@link Target}.
      *
      * @param target
-     *            The target
+     *                  The target
      * @param requested
-     *            number of actions to check
+     *                  number of actions to check
      */
     private void assertActionsPerTargetQuota(final Target target, final int requested) {
         final int quota = quotaManagement.getMaxActionsPerTarget();
