@@ -12,9 +12,11 @@ import org.springframework.util.StringUtils;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -48,12 +50,12 @@ public final class TracerHolder {
     }
 
     public <T> T wrapInSpan(final Supplier<T> supplier, final String spanName, final SpanKind kind) {
-        return wrapInSpan(supplier, spanName, kind, null);
+        return wrapInSpan(supplier, spanName, kind, null, null);
     }
 
     public <T> T wrapInSpan(final Supplier<T> supplier, final String spanName, final SpanKind kind,
-            final Attributes customAttributes) {
-        final Span span = createSpan(spanName, kind);
+            final Attributes customAttributes, final Span parent) {
+        final Span span = createSpan(spanName, kind, parent);
         span.setAttribute("thread", Thread.currentThread().getName());
         if (tenantAware != null) {
             span.setAttribute("tenant", tenantAware.getCurrentTenant());
@@ -78,13 +80,18 @@ public final class TracerHolder {
         }
     }
 
-    public Span createSpan(final String spanName, final SpanKind kind) {
-        return tracer.spanBuilder(sanitizeSpanName(spanName)).setSpanKind(kind != null ? kind : SpanKind.INTERNAL)
-                .startSpan();
+    public Span createSpan(final String spanName, final SpanKind kind, final Span parent) {
+        final SpanBuilder spanBuilder = tracer.spanBuilder(sanitizeSpanName(spanName))
+                .setSpanKind(kind != null ? kind : SpanKind.INTERNAL);
+        if (parent != null) {
+            spanBuilder.setParent(Context.current().with(parent));
+        }
+        return spanBuilder.startSpan();
+
     }
 
     private static String sanitizeSpanName(final String spanName) {
-        return !StringUtils.isEmpty(spanName) ? spanName : "unknown";
+        return StringUtils.hasText(spanName) ? spanName : "unknown";
     }
 
     public void wrapInSpan(final Runnable runnable, final String spanName) {
@@ -92,49 +99,57 @@ public final class TracerHolder {
     }
 
     public void wrapInSpan(final Runnable runnable, final String spanName, final SpanKind kind) {
-        wrapInSpan(runnable, spanName, kind, null);
+        wrapInSpan(runnable, spanName, kind, null, null);
     }
 
     public void wrapInSpan(final Runnable runnable, final String spanName, final SpanKind kind,
-            final Attributes customAttributes) {
+            final Attributes customAttributes, final Span parent) {
         wrapInSpan(() -> {
             runnable.run();
             return null;
-        }, spanName, kind, customAttributes);
+        }, spanName, kind, customAttributes, parent);
+    }
+
+    public <T> T wrapInChildSpan(final Supplier<T> supplier, final String spanName, final Span parent) {
+        return wrapInChildSpan(supplier, spanName, null, null, parent);
     }
 
     public <T> T wrapInChildSpan(final Supplier<T> supplier, final String spanName) {
-        return wrapInChildSpan(supplier, spanName, null);
+        return wrapInChildSpan(supplier, spanName, null, null, null);
     }
 
     public <T> T wrapInChildSpan(final Supplier<T> supplier, final String spanName, final SpanKind kind) {
-        return wrapInChildSpan(supplier, spanName, kind, null);
+        return wrapInChildSpan(supplier, spanName, kind, null, null);
     }
 
     public <T> T wrapInChildSpan(final Supplier<T> supplier, final String spanName, final SpanKind kind,
-            final Attributes customAttributes) {
+            final Attributes customAttributes, final Span parent) {
         if (!Span.current().getSpanContext().isValid()) {
             return supplier.get();
         }
 
-        return wrapInSpan(supplier, spanName, kind, customAttributes);
+        return wrapInSpan(supplier, spanName, kind, customAttributes, parent);
+    }
+
+    public void wrapInChildSpan(final Runnable runnable, final String spanName, final Span parent) {
+        wrapInChildSpan(runnable, spanName, null, null, parent);
     }
 
     public void wrapInChildSpan(final Runnable runnable, final String spanName) {
-        wrapInChildSpan(runnable, spanName, null);
+        wrapInChildSpan(runnable, spanName, null, null, null);
     }
 
     public void wrapInChildSpan(final Runnable runnable, final String spanName, final SpanKind kind) {
-        wrapInChildSpan(runnable, spanName, kind, null);
+        wrapInChildSpan(runnable, spanName, kind, null, null);
     }
 
     public void wrapInChildSpan(final Runnable runnable, final String spanName, final SpanKind kind,
-            final Attributes customAttributes) {
+            final Attributes customAttributes, final Span parent) {
         if (!Span.current().getSpanContext().isValid()) {
             runnable.run();
             return;
         }
 
-        wrapInSpan(runnable, spanName, kind, customAttributes);
+        wrapInSpan(runnable, spanName, kind, customAttributes, parent);
     }
 }

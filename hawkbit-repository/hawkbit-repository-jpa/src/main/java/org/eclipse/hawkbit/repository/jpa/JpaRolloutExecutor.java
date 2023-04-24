@@ -8,9 +8,18 @@
  */
 package org.eclipse.hawkbit.repository.jpa;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -58,6 +67,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+import org.springframework.security.concurrent.DelegatingSecurityContextExecutorService;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionException;
 import org.springframework.util.StringUtils;
@@ -66,6 +77,7 @@ import com.google.common.collect.Lists;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Context;
 
 /**
  * A Jpa implementation of {@link RolloutExecutor}
@@ -111,6 +123,7 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private final RolloutApprovalStrategy rolloutApprovalStrategy;
     private final RolloutGroupEvaluationManager evaluationManager;
     private final RolloutManagement rolloutManagement;
+    private final ExecutorService rolloutGroupHandlingExecutorService;
 
     /**
      * Constructor
@@ -140,6 +153,26 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         this.rolloutApprovalStrategy = rolloutApprovalStrategy;
         this.evaluationManager = evaluationManager;
         this.rolloutManagement = rolloutManagement;
+        this.rolloutGroupHandlingExecutorService = Context
+                .taskWrapping(new DelegatingSecurityContextExecutorService(threadPoolExecutor()));
+    }
+
+    private ThreadPoolExecutor threadPoolExecutor() {
+        final BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<>(
+                1000);
+        return new ThreadPoolExecutor(100, 100,
+                10000L, TimeUnit.MILLISECONDS, blockingQueue,
+                new CustomizableThreadFactory("rollout-group-executor-pool-%d"), new PoolSizeExceededPolicy());
+    }
+
+    private static class PoolSizeExceededPolicy extends ThreadPoolExecutor.CallerRunsPolicy {
+        @Override
+        public void rejectedExecution(final Runnable r, final ThreadPoolExecutor executor) {
+            LOGGER.warn(
+                    "Caller has to run on its own instead of centralExecutorService, reached limit of queue size {}",
+                    executor.getQueue().size());
+            super.rejectedExecution(r, executor);
+        }
     }
 
     @Override
@@ -541,12 +574,36 @@ public class JpaRolloutExecutor implements RolloutExecutor {
                         () -> rolloutGroupRepository.findByRolloutAndStatus(rollout,
                                 RolloutGroupStatus.READY),
                         "FindRolloutGroupsToSchedule");
-        final long scheduledGroups = groupsToBeScheduled.stream()
-                .filter(group -> TracerHolder.getInstance()
-                        .wrapInChildSpan(
-                                () -> scheduleRolloutGroup(jpaRollout, group),
-                                "ScheduleRolloutGroup-" + group.getName()))
-                .count();
+
+        final Collection<Callable<Boolean>> tasks = new ArrayList<>();
+        final List<Future<Boolean>> futures;
+        for (final JpaRolloutGroup group : groupsToBeScheduled) {
+            tasks.add(() -> TracerHolder.getInstance()
+                    .wrapInChildSpan(
+                            () -> scheduleRolloutGroup(jpaRollout, group),
+                            "ScheduleRolloutGroup-" + group.getName()));
+        }
+        long scheduledGroups = 0;
+        try {
+            futures = rolloutGroupHandlingExecutorService.invokeAll(tasks);
+            scheduledGroups = futures.stream().filter(future -> {
+                try {
+                    return future.get() == Boolean.TRUE;
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            }).count();
+        } catch (final InterruptedException e) {
+            e.printStackTrace();
+        }
+
+//        final long scheduledGroups = groupsToBeScheduled.stream()
+//                .filter(group -> TracerHolder.getInstance()
+//                        .wrapInChildSpan(
+//                                () -> scheduleRolloutGroup(jpaRollout, group),
+//                                "ScheduleRolloutGroup-" + group.getName()))
+//                .count();
 
         return scheduledGroups == groupsToBeScheduled.size();
     }
