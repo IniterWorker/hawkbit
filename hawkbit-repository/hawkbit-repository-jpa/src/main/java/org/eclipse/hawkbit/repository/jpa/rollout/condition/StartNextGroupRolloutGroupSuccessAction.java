@@ -11,6 +11,7 @@ package org.eclipse.hawkbit.repository.jpa.rollout.condition;
 import java.util.List;
 
 import org.eclipse.hawkbit.repository.DeploymentManagement;
+import org.eclipse.hawkbit.repository.RolloutHelper;
 import org.eclipse.hawkbit.repository.jpa.RolloutGroupRepository;
 import org.eclipse.hawkbit.repository.jpa.model.JpaRolloutGroup;
 import org.eclipse.hawkbit.repository.model.Rollout;
@@ -23,7 +24,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Success action which starts the next following {@link RolloutGroup}.
  */
-public class StartNextGroupRolloutGroupSuccessAction implements RolloutGroupActionEvaluator<RolloutGroup.RolloutGroupSuccessAction> {
+public class StartNextGroupRolloutGroupSuccessAction
+        implements RolloutGroupActionEvaluator<RolloutGroup.RolloutGroupSuccessAction> {
 
     private static final Logger logger = LoggerFactory.getLogger(StartNextGroupRolloutGroupSuccessAction.class);
 
@@ -74,11 +76,16 @@ public class StartNextGroupRolloutGroupSuccessAction implements RolloutGroupActi
             final List<JpaRolloutGroup> findByRolloutGroupParent = rolloutGroupRepository
                     .findByParentIdAndStatus(rolloutGroup.getId(), RolloutGroupStatus.SCHEDULED);
             findByRolloutGroupParent.forEach(nextGroup -> {
-                logger.debug("Rolloutgroup {} is finished, starting next group", nextGroup);
-                nextGroup.setStatus(RolloutGroupStatus.FINISHED);
-                rolloutGroupRepository.save(nextGroup);
-                // find the next group to set in running state
-                startNextGroup(rollout, nextGroup);
+                logger.debug("Rollout group {} is finished, starting next group", nextGroup);
+                if (RolloutHelper.isDynamicRolloutGroup(nextGroup)) {
+                    nextGroup.setStatus(RolloutGroupStatus.RUNNING);
+                    rolloutGroupRepository.save(nextGroup);
+                } else {
+                    nextGroup.setStatus(RolloutGroupStatus.FINISHED);
+                    rolloutGroupRepository.save(nextGroup);
+                    // find the next group to set in running state
+                    startNextGroup(rollout, nextGroup);
+                }
             });
         }
     }

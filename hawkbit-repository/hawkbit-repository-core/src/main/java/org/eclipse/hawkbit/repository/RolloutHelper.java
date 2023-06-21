@@ -45,8 +45,8 @@ public final class RolloutHelper {
     }
 
     /**
-     * Verifies that the group has the required success condition and action and a
-     * valid target percentage.
+     * Verifies that the group has the required success condition and action and
+     * a valid target percentage.
      * 
      * @param group
      *            the input group
@@ -140,8 +140,8 @@ public final class RolloutHelper {
     }
 
     /**
-     * Filters the groups of a Rollout to match a specific status and adds a group
-     * to the result.
+     * Filters the groups of a Rollout to match a specific status and adds a
+     * group to the result.
      * 
      * @param status
      *            the required status for the groups
@@ -156,8 +156,8 @@ public final class RolloutHelper {
     }
 
     /**
-     * Creates an RSQL expression that matches all targets in the provided groups.
-     * Links all target filter queries with OR.
+     * Creates an RSQL expression that matches all targets in the provided
+     * groups. Links all target filter queries with OR.
      *
      * @param groups
      *            the rollout groups
@@ -252,4 +252,10 @@ public final class RolloutHelper {
                     + rollout.getStatus().name().toLowerCase());
         }
     }
+
+    public static boolean isDynamicRolloutGroup(final RolloutGroup group) {
+        // TODO find a better way to identify a dynamic group
+        return group.getName().startsWith("Dynamic");
+    }
+
 }

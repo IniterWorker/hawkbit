@@ -151,9 +151,8 @@ public class JpaRolloutManagement implements RolloutManagement {
 
     @Override
     public Page<Rollout> findAll(final Pageable pageable, final boolean deleted) {
-        return JpaManagementHelper.findAllWithCountBySpec(rolloutRepository, pageable,
-                Collections
-                        .singletonList(RolloutSpecification.isDeletedWithDistributionSet(deleted, pageable.getSort())));
+        return JpaManagementHelper.findAllWithCountBySpec(rolloutRepository, pageable, Collections
+                .singletonList(RolloutSpecification.isDeletedWithDistributionSet(deleted, pageable.getSort())));
     }
 
     @Override
@@ -233,8 +232,16 @@ public class JpaRolloutManagement implements RolloutManagement {
             lastSavedGroup = rolloutGroupRepository.save(group);
             publishRolloutGroupCreatedEventAfterCommit(lastSavedGroup, rollout);
         }
+        // check if we need to append a dynamic group
+        if (isDynamicRollout(rollout)) {
+            final JpaRolloutGroup dynamicGroup = newDynamicRolloutGroup(savedRollout, lastSavedGroup);
+            addSuccessAndErrorConditionsAndActions(dynamicGroup, conditions);
+            lastSavedGroup = rolloutGroupRepository.save(dynamicGroup);
+            savedRollout.setRolloutGroupsCreated(amountOfGroups + 1);
+        } else {
+            savedRollout.setRolloutGroupsCreated(amountOfGroups);
+        }
 
-        savedRollout.setRolloutGroupsCreated(amountOfGroups);
         return rolloutRepository.save(savedRollout);
     }
 
@@ -284,8 +291,17 @@ public class JpaRolloutManagement implements RolloutManagement {
             lastSavedGroup = rolloutGroupRepository.save(group);
             publishRolloutGroupCreatedEventAfterCommit(lastSavedGroup, rollout);
         }
-
-        savedRollout.setRolloutGroupsCreated(groups.size());
+        
+        // check if need to append a dynamic group
+        if (isDynamicRollout(rollout)) {
+            final JpaRolloutGroup dynamicGroup = newDynamicRolloutGroup(savedRollout, lastSavedGroup);
+            addSuccessAndErrorConditionsAndActions(dynamicGroup, conditions);
+            lastSavedGroup = rolloutGroupRepository.save(dynamicGroup);
+            savedRollout.setRolloutGroupsCreated(groups.size() + 1);
+        } else {
+            savedRollout.setRolloutGroupsCreated(groups.size());
+        }
+        
         return rolloutRepository.save(savedRollout);
     }
 
@@ -729,4 +745,24 @@ public class JpaRolloutManagement implements RolloutManagement {
         startNextRolloutGroupAction.exec(rollout, latestRunning);
     }
 
+    private static JpaRolloutGroup newDynamicRolloutGroup(final Rollout rollout, final RolloutGroup parentGroup) {
+        final String nameAndDesc = "Dynamic Group";
+        final JpaRolloutGroup dynamicGroup = new JpaRolloutGroup();
+        dynamicGroup.setName(nameAndDesc);
+        dynamicGroup.setDescription(nameAndDesc);
+        dynamicGroup.setRollout(rollout);
+        dynamicGroup.setParent(parentGroup);
+        dynamicGroup.setStatus(RolloutGroupStatus.READY);
+        dynamicGroup.setTargetPercentage(0);
+        dynamicGroup.setTotalTargets(0);
+        dynamicGroup.setTotalTargetCountStatus(new TotalTargetCountStatus(0L, rollout.getActionType()));
+        dynamicGroup.setTargetFilterQuery(rollout.getTargetFilterQuery());
+        return dynamicGroup;
+    }
+
+    private boolean isDynamicRollout(final Rollout rollout) {
+        // TODO there should be a new isDynamic property on the Rollout entity
+        final String rolloutName = rollout.getName();
+        return rolloutName.startsWith("Dynamic");
+    }
 }

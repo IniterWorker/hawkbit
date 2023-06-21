@@ -105,7 +105,7 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private final RolloutApprovalStrategy rolloutApprovalStrategy;
     private final RolloutGroupEvaluationManager evaluationManager;
     private final RolloutManagement rolloutManagement;
-    
+
     /**
      * Constructor
      */
@@ -175,16 +175,20 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         int readyGroups = 0;
         int totalTargets = 0;
         for (final RolloutGroup group : rolloutGroups) {
-            if (RolloutGroupStatus.READY == group.getStatus()) {
+            final boolean isDynamicGroup = RolloutHelper.isDynamicRolloutGroup(group);
+            if (RolloutGroupStatus.READY == group.getStatus() || isDynamicGroup) {
                 readyGroups++;
                 totalTargets += group.getTotalTargets();
                 continue;
             }
 
-            final RolloutGroup filledGroup = fillRolloutGroupWithTargets(rollout, group);
-            if (RolloutGroupStatus.READY == filledGroup.getStatus()) {
-                readyGroups++;
-                totalTargets += filledGroup.getTotalTargets();
+            // A dynamic group does not need to be filled
+            if (!isDynamicGroup) {
+                final RolloutGroup filledGroup = fillRolloutGroupWithTargets(rollout, group);
+                if (RolloutGroupStatus.READY == filledGroup.getStatus()) {
+                    readyGroups++;
+                    totalTargets += filledGroup.getTotalTargets();
+                }
             }
         }
 
@@ -265,8 +269,11 @@ public class JpaRolloutExecutor implements RolloutExecutor {
             return;
         }
 
-        rolloutGroupRepository.findByRolloutAndStatusNotIn(rollout,
-                Arrays.asList(RolloutGroupStatus.FINISHED, RolloutGroupStatus.ERROR)).forEach(rolloutGroup -> {
+        rolloutGroupRepository
+                .findByRolloutAndStatusNotIn(rollout,
+                        Arrays.asList(RolloutGroupStatus.FINISHED, RolloutGroupStatus.ERROR))
+                .stream().filter(rolloutGroup -> !RolloutHelper.isDynamicRolloutGroup(rolloutGroup))
+                .forEach(rolloutGroup -> {
                     rolloutGroup.setStatus(RolloutGroupStatus.FINISHED);
                     rolloutGroupRepository.save(rolloutGroup);
                 });
@@ -372,11 +379,24 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         if (latestRolloutGroup.isEmpty()) {
             return;
         }
-        executeRolloutGroupSuccessAction(rollout, latestRolloutGroup.get(0));
+        final JpaRolloutGroup latestGroup = latestRolloutGroup.get(0);
+        if (RolloutHelper.isDynamicRolloutGroup(latestGroup)) {
+            handleDynamicRolloutGroup(rollout, latestGroup);
+            final long targetCount = countTargetsFrom(latestGroup);
+            if (latestGroup.getTotalTargets() != targetCount) {
+                updateTotalTargetCount(latestGroup, targetCount);
+            }
+        }
+        executeRolloutGroupSuccessAction(rollout, latestGroup);
     }
 
     private void executeRolloutGroups(final JpaRollout rollout, final List<JpaRolloutGroup> rolloutGroups) {
+
         for (final JpaRolloutGroup rolloutGroup : rolloutGroups) {
+
+            if (RolloutHelper.isDynamicRolloutGroup(rolloutGroup)) {
+                handleDynamicRolloutGroup(rollout, rolloutGroup);
+            }
 
             final long targetCount = countTargetsFrom(rolloutGroup);
             if (rolloutGroup.getTotalTargets() != targetCount) {
@@ -426,6 +446,10 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     }
 
     private boolean isRolloutGroupComplete(final JpaRollout rollout, final JpaRolloutGroup rolloutGroup) {
+        if (RolloutHelper.isDynamicRolloutGroup(rolloutGroup)) {
+            LOGGER.trace("Dynamic rollout group {} cannot finish", rolloutGroup);
+            return false;
+        }
         final Long actionsLeftForRollout = ActionType.DOWNLOAD_ONLY == rollout.getActionType()
                 ? actionRepository.countByRolloutAndRolloutGroupAndStatusNotIn(rollout, rolloutGroup,
                         DOWNLOAD_ONLY_ACTION_TERMINATION_STATUSES)
@@ -454,6 +478,10 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     private boolean checkFinishCondition(final Rollout rollout, final RolloutGroup rolloutGroup,
             final RolloutGroupSuccessCondition finishCondition) {
         LOGGER.trace("Checking finish condition {} on rolloutgroup {}", finishCondition, rolloutGroup);
+        if (RolloutHelper.isDynamicRolloutGroup(rolloutGroup)) {
+            LOGGER.trace("Dynamic rollout group {} cannot finish", rolloutGroup);
+            return false;
+        }
         try {
             final boolean isFinished = evaluationManager.getSuccessConditionEvaluator(finishCondition).eval(rollout,
                     rolloutGroup, rolloutGroup.getSuccessConditionExp());
@@ -509,7 +537,10 @@ public class JpaRolloutExecutor implements RolloutExecutor {
     }
 
     private RolloutGroup fillRolloutGroupWithTargets(final JpaRollout rollout, final RolloutGroup group1) {
-        RolloutHelper.verifyRolloutInStatus(rollout, RolloutStatus.CREATING);
+
+        if (!RolloutHelper.isDynamicRolloutGroup(group1)) {
+            RolloutHelper.verifyRolloutInStatus(rollout, RolloutStatus.CREATING);
+        }
 
         final JpaRolloutGroup group = (JpaRolloutGroup) group1;
 
@@ -536,7 +567,7 @@ public class JpaRolloutExecutor implements RolloutExecutor {
 
         // Switch the Group status to READY, when there are enough Targets in
         // the Group
-        if (currentlyInGroup >= expectedInGroup) {
+        if (currentlyInGroup >= expectedInGroup || RolloutHelper.isDynamicRolloutGroup(group)) {
             group.setStatus(RolloutGroupStatus.READY);
             return rolloutGroupRepository.save(group);
         }
@@ -594,7 +625,9 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         }
 
         if (actionsLeft <= 0) {
+            // if (!RolloutHelper.isDynamicRolloutGroup(group)) {
             group.setStatus(RolloutGroupStatus.SCHEDULED);
+            // }
             rolloutGroupRepository.save(group);
             return true;
         }
@@ -690,4 +723,41 @@ public class JpaRolloutExecutor implements RolloutExecutor {
         QuotaHelper.assertAssignmentQuota(target.getId(), requested, quota, Action.class, Target.class,
                 actionRepository::countByTargetId);
     }
+
+    private Long handleDynamicRolloutGroup(final JpaRollout rollout, final JpaRolloutGroup group) {
+        LOGGER.debug("handleAutoAssignmentGroup {}", group);
+        if (updateDynamicRolloutGroup(rollout, group) > 0) {
+            scheduleRolloutGroup(rollout, group);
+        } else {
+            LOGGER.debug("handleAutoAssignmentGroup {}: No new targets found...", group.getId());
+        }
+        return 0L;
+    }
+
+    public Long updateDynamicRolloutGroup(final JpaRollout rollout, final JpaRolloutGroup group) {
+
+        if (!RolloutHelper.isDynamicRolloutGroup(group)) {
+            LOGGER.debug("Rollout rollout group {} is not a dynamic group", group.getId());
+            return 0L;
+        }
+
+        if (!(group.getStatus() == RolloutGroupStatus.RUNNING)) {
+            LOGGER.debug("Dynamic rollout group {} is not in the RUNNING state.", group.getId());
+            return 0L;
+        }
+
+        return DeploymentHelper.runInNewTransaction(txManager, "assignTargetsToDynamicRolloutGroup", status -> {
+            // TODO page size
+            final PageRequest pageRequest = PageRequest.of(0, 1000);
+            final List<Long> groups = rollout.getRolloutGroups().stream().map(RolloutGroup::getId)
+                    .collect(Collectors.toList());
+            final Slice<Target> targets = targetManagement.findByTargetFilterQueryAndNotInRolloutGroupsAndCompatible(
+                    pageRequest, groups, rollout.getTargetFilterQuery(), rollout.getDistributionSet().getType());
+
+            createAssignmentOfTargetsToGroup(targets, group);
+            return Long.valueOf(targets.getNumberOfElements());
+        });
+
+    }
+
 }
