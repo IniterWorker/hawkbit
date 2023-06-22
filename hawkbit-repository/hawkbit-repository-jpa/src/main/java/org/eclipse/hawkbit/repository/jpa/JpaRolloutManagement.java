@@ -233,7 +233,7 @@ public class JpaRolloutManagement implements RolloutManagement {
             publishRolloutGroupCreatedEventAfterCommit(lastSavedGroup, rollout);
         }
         // check if we need to append a dynamic group
-        if (isDynamicRollout(rollout)) {
+        if (RolloutHelper.isDynamicRollout(rollout)) {
             final JpaRolloutGroup dynamicGroup = newDynamicRolloutGroup(savedRollout, lastSavedGroup);
             addSuccessAndErrorConditionsAndActions(dynamicGroup, conditions);
             lastSavedGroup = rolloutGroupRepository.save(dynamicGroup);
@@ -293,7 +293,7 @@ public class JpaRolloutManagement implements RolloutManagement {
         }
         
         // check if need to append a dynamic group
-        if (isDynamicRollout(rollout)) {
+        if (RolloutHelper.isDynamicRollout(rollout)) {
             final JpaRolloutGroup dynamicGroup = newDynamicRolloutGroup(savedRollout, lastSavedGroup);
             addSuccessAndErrorConditionsAndActions(dynamicGroup, conditions);
             lastSavedGroup = rolloutGroupRepository.save(dynamicGroup);
@@ -760,9 +760,4 @@ public class JpaRolloutManagement implements RolloutManagement {
         return dynamicGroup;
     }
 
-    private boolean isDynamicRollout(final Rollout rollout) {
-        // TODO there should be a new isDynamic property on the Rollout entity
-        final String rolloutName = rollout.getName();
-        return rolloutName.startsWith("Dynamic");
-    }
 }

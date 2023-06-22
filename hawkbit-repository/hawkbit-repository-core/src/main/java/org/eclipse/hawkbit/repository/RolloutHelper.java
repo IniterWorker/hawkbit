@@ -258,4 +258,10 @@ public final class RolloutHelper {
         return group.getName().startsWith("Dynamic");
     }
 
+    public static boolean isDynamicRollout(final Rollout rollout) {
+        // TODO there should be a new isDynamic property on the Rollout entity
+        final String rolloutName = rollout.getName();
+        return rolloutName.startsWith("Dynamic");
+    }
+
 }

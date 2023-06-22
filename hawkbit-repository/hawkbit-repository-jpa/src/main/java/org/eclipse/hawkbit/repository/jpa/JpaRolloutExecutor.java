@@ -54,6 +54,7 @@ import org.eclipse.hawkbit.tenancy.TenantAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
@@ -294,6 +295,15 @@ public class JpaRolloutExecutor implements RolloutExecutor {
                     "handleReadyRollout called for rollout {} with autostart beyond define time. Switch to STARTING",
                     rollout.getId());
             rolloutManagement.start(rollout.getId());
+        }
+        
+        // in case of a dynamic rollout we can start to collect targets which
+        // might have been created in the meantime
+        if (RolloutHelper.isDynamicRollout(rollout)) {
+            // TODO pageable, unchecked cast
+            rolloutGroupRepository.findByRolloutId(rollout.getId(), Pageable.ofSize(1000)).stream()
+                    .filter(RolloutHelper::isDynamicRolloutGroup)
+                    .forEach(group -> updateDynamicRolloutGroup((JpaRollout) rollout, group));
         }
     }
 
@@ -741,10 +751,11 @@ public class JpaRolloutExecutor implements RolloutExecutor {
             return 0L;
         }
 
-        if (!(group.getStatus() == RolloutGroupStatus.RUNNING)) {
-            LOGGER.debug("Dynamic rollout group {} is not in the RUNNING state.", group.getId());
-            return 0L;
-        }
+        /*
+         * if (!(group.getStatus() == RolloutGroupStatus.RUNNING)) {
+         * LOGGER.debug("Dynamic rollout group {} is not in the RUNNING state.",
+         * group.getId()); return 0L; }
+         */
 
         return DeploymentHelper.runInNewTransaction(txManager, "assignTargetsToDynamicRolloutGroup", status -> {
             // TODO page size
