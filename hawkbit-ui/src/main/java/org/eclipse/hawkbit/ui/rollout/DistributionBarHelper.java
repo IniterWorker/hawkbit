@@ -137,8 +137,8 @@ public final class DistributionBarHelper {
     }
 
     private static String getUnintialisedBar() {
-        return HTML_DIV_CLASS_START + UNINITIALIZED_VALUE_CLASSNAME + "\" style=\"width: 100%;\"><span class=\""
-                + DISTRIBUTION_BAR_PART_VALUE_CLASSNAME + "\">uninitialized</span></div>";
+        return getParentDivStart() + HTML_DIV_CLASS_START + getPartStyle(1, 1, Status.NOTSTARTED) + "\" style=\"width: 100%;\"><span class=\""
+                + DISTRIBUTION_BAR_PART_VALUE_CLASSNAME + "\">" + 0 + "</span></div></div>";
     }
 
     private static Long getTotalSizes(final Map<Status, Long> statusTotalCountMap) {
