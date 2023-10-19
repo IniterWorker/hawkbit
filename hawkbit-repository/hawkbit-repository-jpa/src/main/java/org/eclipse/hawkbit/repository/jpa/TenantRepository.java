@@ -11,8 +11,8 @@ package org.eclipse.hawkbit.repository.jpa;
 
 import java.util.List;
 
-import org.eclipse.hawkbit.repository.jpa.model.JpaTenantMetaData;
-import org.eclipse.hawkbit.repository.model.TenantMetaData;
+import org.eclipse.hawkbit.repository.jpa.model.JpaTenant;
+import org.eclipse.hawkbit.repository.model.Tenant;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -21,32 +21,32 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * repository for operations on {@link TenantMetaData} entity.
+ * repository for operations on {@link Tenant} entity.
  *
  */
 @Transactional(readOnly = true)
-public interface TenantMetaDataRepository
-        extends PagingAndSortingRepository<JpaTenantMetaData, Long>,
-        CrudRepository<JpaTenantMetaData, Long> {
+public interface TenantRepository
+        extends PagingAndSortingRepository<JpaTenant, Long>,
+        CrudRepository<JpaTenant, Long> {
 
     /**
-     * Search {@link TenantMetaData} by tenant name.
+     * Search {@link Tenant} by tenant name.
      *
      * @param tenant
      *            to search for
-     * @return found {@link TenantMetaData} or <code>null</code>
+     * @return found {@link Tenant} or <code>null</code>
      */
-    TenantMetaData findByTenantIgnoreCase(String tenant);
+    Tenant findByTenantIgnoreCase(String tenant);
 
     @Override
-    List<JpaTenantMetaData> findAll();
+    List<JpaTenant> findAll();
 
     /**
      * @param tenant
      */
     @Transactional
     @Modifying
-    @Query("DELETE FROM JpaTenantMetaData t WHERE UPPER(t.tenant) = UPPER(:tenant)")
+    @Query("DELETE FROM JpaTenant t WHERE UPPER(t.tenant) = UPPER(:tenant)")
     void deleteByTenantIgnoreCase(@Param("tenant") String tenant);
 
 }

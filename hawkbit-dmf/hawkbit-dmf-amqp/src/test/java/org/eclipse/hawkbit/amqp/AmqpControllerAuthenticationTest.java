@@ -38,7 +38,7 @@ import org.eclipse.hawkbit.repository.jpa.model.JpaSoftwareModule;
 import org.eclipse.hawkbit.repository.jpa.model.JpaSoftwareModuleType;
 import org.eclipse.hawkbit.repository.model.Target;
 import org.eclipse.hawkbit.repository.model.TenantConfigurationValue;
-import org.eclipse.hawkbit.repository.model.TenantMetaData;
+import org.eclipse.hawkbit.repository.TenantMetaData;
 import org.eclipse.hawkbit.security.DdiSecurityProperties;
 import org.eclipse.hawkbit.security.DdiSecurityProperties.Authentication.Anonymous;
 import org.eclipse.hawkbit.security.DdiSecurityProperties.Rp;

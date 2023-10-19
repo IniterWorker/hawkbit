@@ -158,6 +158,8 @@ public class TenantConfigurationProperties {
          */
         public static final String USER_CONFIRMATION_ENABLED = "user.confirmation.flow.enabled";
 
+        public static final String DEFAULT_DISTRIBUTION_SET_TYPE = "default.ds.type";
+
         private String keyName;
         private String defaultValue = "";
         private Class<?> dataType = String.class;

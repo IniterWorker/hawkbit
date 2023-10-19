@@ -10,22 +10,16 @@
 package org.eclipse.hawkbit.repository.jpa.model;
 
 import javax.persistence.Column;
-import javax.persistence.ConstraintMode;
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
-import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import org.eclipse.hawkbit.repository.model.DistributionSetType;
+import org.eclipse.hawkbit.repository.model.Tenant;
 import org.eclipse.hawkbit.repository.model.TenantAwareBaseEntity;
-import org.eclipse.hawkbit.repository.model.TenantMetaData;
 
 /**
  * Tenant entity with meta data that is configured globally for the entire
@@ -42,7 +36,7 @@ import org.eclipse.hawkbit.repository.model.TenantMetaData;
 // exception squid:S2160 - BaseEntity equals/hashcode is handling correctly for
 // sub entities
 @SuppressWarnings("squid:S2160")
-public class JpaTenantMetaData extends AbstractJpaBaseEntity implements TenantMetaData {
+public class JpaTenant extends AbstractJpaBaseEntity implements Tenant {
     private static final long serialVersionUID = 1L;
 
     @Column(name = "tenant", nullable = false, updatable = false, length = 40)
@@ -50,37 +44,45 @@ public class JpaTenantMetaData extends AbstractJpaBaseEntity implements TenantMe
     @NotNull
     private String tenant;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "default_ds_type", nullable = false, foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_tenant_md_default_ds_type"))
-    private JpaDistributionSetType defaultDsType;
+//    @OneToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "default_ds_type", nullable = false, foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_tenant_md_default_ds_type"))
+//    private JpaDistributionSetType defaultDsType;
 
     /**
      * Default constructor needed for JPA entities.
      */
-    public JpaTenantMetaData() {
+    public JpaTenant() {
         // Default constructor needed for JPA entities.
     }
 
+//    /**
+//     * Standard constructor.
+//     *
+//     *            of this tenant
+//     * @param tenant
+//     */
+//    public JpaTenantMetaData(final DistributionSetType defaultDsType, final String tenant) {
+//        this.defaultDsType = (JpaDistributionSetType) defaultDsType;
+//        this.tenant = tenant;
+//    }
     /**
      * Standard constructor.
      *
-     * @param defaultDsType
      *            of this tenant
      * @param tenant
      */
-    public JpaTenantMetaData(final DistributionSetType defaultDsType, final String tenant) {
-        this.defaultDsType = (JpaDistributionSetType) defaultDsType;
+    public JpaTenant(final String tenant) {
         this.tenant = tenant;
     }
 
-    @Override
-    public DistributionSetType getDefaultDsType() {
-        return defaultDsType;
-    }
-
-    public void setDefaultDsType(final JpaDistributionSetType defaultDsType) {
-        this.defaultDsType = defaultDsType;
-    }
+//    @Override
+//    public DistributionSetType getDefaultDsType() {
+//        return defaultDsType;
+//    }
+//
+//    public void setDefaultDsType(final JpaDistributionSetType defaultDsType) {
+//        this.defaultDsType = defaultDsType;
+//    }
 
     @Override
     public String getTenant() {

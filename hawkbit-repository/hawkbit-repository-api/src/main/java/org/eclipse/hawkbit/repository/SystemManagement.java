@@ -16,7 +16,6 @@ import javax.validation.constraints.NotNull;
 import org.eclipse.hawkbit.im.authentication.SpPermission.SpringEvalExpressions;
 import org.eclipse.hawkbit.repository.model.DistributionSetType;
 import org.eclipse.hawkbit.repository.model.SoftwareModuleType;
-import org.eclipse.hawkbit.repository.model.TenantMetaData;
 import org.eclipse.hawkbit.repository.report.model.SystemUsageReport;
 import org.eclipse.hawkbit.repository.report.model.SystemUsageReportWithTenants;
 import org.eclipse.hawkbit.tenancy.TenantAware;
@@ -118,7 +117,7 @@ public interface SystemManagement {
      * @return updated {@link TenantMetaData} entity
      */
     @PreAuthorize(SpringEvalExpressions.HAS_AUTH_TENANT_CONFIGURATION)
-    TenantMetaData updateTenantMetadata(long defaultDsType);
+    TenantMetaData updateTenantDefaultDsType(long defaultDsType);
 
     /**
      * Returns {@link TenantMetaData} of given tenant ID.

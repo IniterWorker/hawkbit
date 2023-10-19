@@ -69,7 +69,7 @@ public abstract class AbstractJpaIntegrationTest extends AbstractIntegrationTest
     protected SoftwareModuleRepository softwareModuleRepository;
 
     @Autowired
-    protected TenantMetaDataRepository tenantMetaDataRepository;
+    protected TenantRepository tenantRepository;
 
     @Autowired
     protected DistributionSetTypeRepository distributionSetTypeRepository;

@@ -25,15 +25,18 @@ import org.eclipse.hawkbit.repository.jpa.configuration.Constants;
 import org.eclipse.hawkbit.repository.jpa.configuration.MultiTenantJpaTransactionManager;
 import org.eclipse.hawkbit.repository.jpa.model.JpaDistributionSetType;
 import org.eclipse.hawkbit.repository.jpa.model.JpaSoftwareModuleType;
-import org.eclipse.hawkbit.repository.jpa.model.JpaTenantMetaData;
+import org.eclipse.hawkbit.repository.jpa.model.JpaTenantConfiguration;
+import org.eclipse.hawkbit.repository.jpa.model.JpaTenant;
+import org.eclipse.hawkbit.repository.TenantMetaData;
 import org.eclipse.hawkbit.repository.jpa.utils.DeploymentHelper;
 import org.eclipse.hawkbit.repository.model.DistributionSetType;
 import org.eclipse.hawkbit.repository.model.SoftwareModuleType;
-import org.eclipse.hawkbit.repository.model.TenantMetaData;
+import org.eclipse.hawkbit.repository.model.Tenant;
 import org.eclipse.hawkbit.repository.report.model.SystemUsageReport;
 import org.eclipse.hawkbit.repository.report.model.SystemUsageReportWithTenants;
 import org.eclipse.hawkbit.security.SystemSecurityContext;
 import org.eclipse.hawkbit.tenancy.TenantAware;
+import org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties;
 import org.eclipse.persistence.config.PersistenceUnitProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +85,7 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
     private SoftwareModuleRepository softwareModuleRepository;
 
     @Autowired
-    private TenantMetaDataRepository tenantMetaDataRepository;
+    private TenantRepository tenantRepository;
 
     @Autowired
     private DistributionSetTypeRepository distributionSetTypeRepository;
@@ -169,7 +172,7 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
                 .getSingleResult()).longValue();
 
         return new SystemUsageReportWithTenants(targets, artifacts, actions, sumOfArtifacts,
-                tenantMetaDataRepository.count());
+                tenantRepository.count());
     }
 
     private static boolean isPostgreSql(final JpaProperties properties) {
@@ -196,17 +199,20 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
     }
 
     @Override
-    public TenantMetaData getTenantMetadata(final String tenant) {
-        final TenantMetaData result = tenantMetaDataRepository.findByTenantIgnoreCase(tenant);
+    public TenantMetaData getTenantMetadata(final String tenantName) {
+        final TenantMetaData result;
+        final Tenant         tenant = tenantRepository.findByTenantIgnoreCase(tenantName);
         // Create if it does not exist
-        if (result == null) {
+        if (tenant == null) {
             try {
-                currentTenantCacheKeyGenerator.setTenantInCreation(tenant);
-                return createInitialTenantMetaData(tenant);
+                currentTenantCacheKeyGenerator.setTenantInCreation(tenantName);
+                result = createInitialTenantMetaData(tenantName);
 
             } finally {
                 currentTenantCacheKeyGenerator.removeTenantInCreation();
             }
+        } else {
+            result = new TenantMetadataImpl(tenant, tenantConfigurationRepository, distributionSetTypeRepository);
         }
         return result;
     }
@@ -229,17 +235,22 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
         return systemSecurityContext.runAsSystemAsTenant(
                 () -> DeploymentHelper.runInNewTransaction(txManager, "initial-tenant-creation", status -> {
                     final DistributionSetType defaultDsType = createStandardSoftwareDataSetup();
-                    return tenantMetaDataRepository.save(new JpaTenantMetaData(defaultDsType, tenant));
+                    //todo check if tenantMetadataRepository has to be called first.
+                    tenantConfigurationRepository.save(
+                        new JpaTenantConfiguration(TenantConfigurationProperties.TenantConfigurationKey.DEFAULT_DISTRIBUTION_SET_TYPE,
+                            String.valueOf(defaultDsType.getId())));
+                    JpaTenant jpaTenant = tenantRepository.save(new JpaTenant(tenant));
+                    return new TenantMetadataImpl(jpaTenant, tenantConfigurationRepository, distributionSetTypeRepository);
                 }), tenant);
     }
 
     @Override
     public Page<String> findTenants(final Pageable pageable) {
-        final Page<JpaTenantMetaData> result = tenantMetaDataRepository.findAll(pageable);
+        final Page<JpaTenant> result = tenantRepository.findAll(pageable);
 
         return new PageImpl<>(
                 Collections.unmodifiableList(
-                        result.getContent().stream().map(TenantMetaData::getTenant).collect(Collectors.toList())),
+                        result.getContent().stream().map(JpaTenant::getTenant).collect(Collectors.toList())),
                 pageable, result.getTotalElements());
     }
 
@@ -253,7 +264,7 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
         rolloutStatusCache.evictCaches(tenant);
         tenantAware.runAsTenant(tenant, () -> {
             entityManager.setProperty(PersistenceUnitProperties.MULTITENANT_PROPERTY_DEFAULT, tenant);
-            tenantMetaDataRepository.deleteByTenantIgnoreCase(tenant);
+            tenantRepository.deleteByTenantIgnoreCase(tenant);
             tenantConfigurationRepository.deleteByTenant(tenant);
             targetRepository.deleteByTenant(tenant);
             targetFilterQueryRepository.deleteByTenant(tenant);
@@ -282,7 +293,7 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
     @Cacheable(value = "currentTenant", keyGenerator = "currentTenantKeyGenerator", cacheManager = "directCacheManager", unless = "#result == null")
     public String currentTenant() {
         return currentTenantCacheKeyGenerator.getTenantInCreation().orElseGet(() -> {
-            final TenantMetaData findByTenant = tenantMetaDataRepository
+            final Tenant findByTenant = tenantRepository
                     .findByTenantIgnoreCase(tenantAware.getCurrentTenant());
             return findByTenant != null ? findByTenant.getTenant() : null;
         });
@@ -292,13 +303,13 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
     @Transactional
     @Retryable(include = {
             ConcurrencyFailureException.class }, maxAttempts = Constants.TX_RT_MAX, backoff = @Backoff(delay = Constants.TX_RT_DELAY))
-    public TenantMetaData updateTenantMetadata(final long defaultDsType) {
-        final JpaTenantMetaData data = (JpaTenantMetaData) getTenantMetadata();
+    public TenantMetaData updateTenantDefaultDsType(final long defaultDsType) {
+        final TenantMetadataImpl data = (TenantMetadataImpl) getTenantMetadata();
 
         data.setDefaultDsType(distributionSetTypeRepository.findById(defaultDsType)
                 .orElseThrow(() -> new EntityNotFoundException(DistributionSetType.class, defaultDsType)));
 
-        return tenantMetaDataRepository.save(data);
+        return data;
     }
 
     private DistributionSetType createStandardSoftwareDataSetup() {
@@ -332,8 +343,8 @@ public class JpaSystemManagement implements CurrentTenantCacheKeyGenerator, Syst
 
     @Override
     public TenantMetaData getTenantMetadata(final long tenantId) {
-        return tenantMetaDataRepository.findById(tenantId)
-                .orElseThrow(() -> new EntityNotFoundException(TenantMetaData.class, tenantId));
+        JpaTenant jpaTenant = tenantRepository.findById(tenantId).orElseThrow(() -> new EntityNotFoundException(Tenant.class, tenantId));
+        return new TenantMetadataImpl(jpaTenant, tenantConfigurationRepository,distributionSetTypeRepository);
     }
 
     @Override

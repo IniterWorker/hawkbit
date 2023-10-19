@@ -271,6 +271,7 @@ public class JpaDistributionSetTypeManagement implements DistributionSetTypeMana
     @Retryable(include = {
             ConcurrencyFailureException.class }, maxAttempts = Constants.TX_RT_MAX, backoff = @Backoff(delay = Constants.TX_RT_DELAY))
     public void delete(final long typeId) {
+        //TODO check with new approach additional check if can be deleted
         final JpaDistributionSetType toDelete = distributionSetTypeRepository.findById(typeId)
                 .orElseThrow(() -> new EntityNotFoundException(DistributionSetType.class, typeId));
 

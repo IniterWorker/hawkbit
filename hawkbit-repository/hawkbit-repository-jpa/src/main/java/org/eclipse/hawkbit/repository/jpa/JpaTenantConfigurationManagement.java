@@ -10,6 +10,7 @@
 package org.eclipse.hawkbit.repository.jpa;
 
 import static org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties.TenantConfigurationKey.BATCH_ASSIGNMENTS_ENABLED;
+import static org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties.TenantConfigurationKey.DEFAULT_DISTRIBUTION_SET_TYPE;
 import static org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties.TenantConfigurationKey.MULTI_ASSIGNMENTS_ENABLED;
 import static org.eclipse.hawkbit.tenancy.configuration.TenantConfigurationProperties.TenantConfigurationKey.REPOSITORY_ACTIONS_AUTOCLOSE_ENABLED;
 
@@ -18,12 +19,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.hawkbit.repository.TenantConfigurationManagement;
 import org.eclipse.hawkbit.repository.exception.TenantConfigurationValueChangeNotAllowedException;
 import org.eclipse.hawkbit.repository.jpa.configuration.Constants;
 import org.eclipse.hawkbit.repository.jpa.executor.AfterTransactionCommitExecutor;
+import org.eclipse.hawkbit.repository.jpa.model.JpaDistributionSetType;
 import org.eclipse.hawkbit.repository.jpa.model.JpaTenantConfiguration;
 import org.eclipse.hawkbit.repository.model.TenantConfiguration;
 import org.eclipse.hawkbit.repository.model.TenantConfigurationValue;
@@ -60,6 +63,9 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
 
     @Autowired
     private TenantConfigurationProperties tenantConfigurationProperties;
+
+    @Autowired
+    private DistributionSetTypeRepository distributionSetTypeRepository;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -234,6 +240,19 @@ public class JpaTenantConfigurationManagement implements TenantConfigurationMana
         assertMultiAssignmentsValueChange(key, valueChange);
         assertAutoCloseValueChange(key, valueChange);
         assertBatchAssignmentValueChange(key, valueChange);
+        assertDefaultDsTypeValueChange(key,valueChange);
+    }
+
+    private void assertDefaultDsTypeValueChange(final String key, final JpaTenantConfiguration valueChange) {
+        if (DEFAULT_DISTRIBUTION_SET_TYPE.equals(key)) {
+            Long dsTypeId = Long.valueOf(valueChange.getValue());
+            Optional<JpaDistributionSetType> dsType = distributionSetTypeRepository.findById(dsTypeId);
+            if (dsType.isEmpty() || !dsType.get().getTenant().equals(valueChange.getTenant())) {
+                LOG.debug("Default Distribution SetType id {} not found. Change of {} failed.", dsTypeId, key);
+                throw new TenantConfigurationValueChangeNotAllowedException();
+
+            }
+        }
     }
 
     @SuppressWarnings("squid:S1172")
