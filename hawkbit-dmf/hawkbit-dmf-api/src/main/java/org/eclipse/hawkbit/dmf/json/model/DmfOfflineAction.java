@@ -21,12 +21,12 @@ public class DmfOfflineAction {
 
     @JsonProperty
     private String externalRef; // leave it optional for now, it is not mandatory for us ?
-    private final OfflineStatus status;
+    private final DmfActionStatus status;
     private final Long distributionSetId;
     @JsonProperty
-    private List<DmfActionUpdateStatus> statusEntries;
+    private List<DmfOfflineActionUpdateStatus> statusEntries;
 
-    public DmfOfflineAction(@JsonProperty(value = "status", required = true) final OfflineStatus status,
+    public DmfOfflineAction(@JsonProperty(value = "status", required = true) final DmfActionStatus status,
                             @JsonProperty(value = "distributionSetId", required = true) final Long distributionSetId) {
         this.status = status;
         this.distributionSetId = distributionSetId;
@@ -36,7 +36,7 @@ public class DmfOfflineAction {
         return distributionSetId;
     }
 
-    public OfflineStatus getStatus() {
+    public DmfActionStatus getStatus() {
         return status;
     }
 
@@ -48,22 +48,11 @@ public class DmfOfflineAction {
         this.externalRef = externalRef;
     }
 
-    public List<DmfActionUpdateStatus> getStatusEntries() {
+    public List<DmfOfflineActionUpdateStatus> getStatusEntries() {
         return statusEntries;
     }
 
-    public void setStatusEntries(List<DmfActionUpdateStatus> statusEntries) {
+    public void setStatusEntries(List<DmfOfflineActionUpdateStatus> statusEntries) {
         this.statusEntries = statusEntries;
-    }
-
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public enum OfflineStatus {
-        FINISHED,
-
-        CANCELLED,
-
-        ERROR
     }
 }
