@@ -67,5 +67,10 @@ public enum EventTopic {
     /**
      * Topic when confirmation of an action is requested.
      */
-    CONFIRM
+    CONFIRM,
+
+    /**
+     * Topic when sending a create offline actions message
+     */
+    CREATE_OFFLINE_ACTIONS
 }

@@ -328,6 +328,10 @@ public class AmqpMessageHandlerService extends BaseAmqpService {
         case UPDATE_AUTO_CONFIRM:
             setAutoConfirmationState(message);
             break;
+        case CREATE_OFFLINE_ACTIONS:
+            //TODO:
+            LOG.info("Recieve create offline actions message {}", message);
+            break;
         default:
             logAndThrowMessageError(message, "Got event without appropriate topic.");
             break;
