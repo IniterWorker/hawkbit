@@ -1,0 +1,31 @@
+/***
+ * Copyright (c) 2023 Bosch.IO GmbH and others
+ *
+ * This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License 2.0
+ * which is available at https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.hawkbit.dmf.json.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class DmfOfflineActionRequest {
+
+    private final List<DmfOfflineAction> actions;
+
+    public DmfOfflineActionRequest(@JsonProperty(value = "actions", required = true) final List<DmfOfflineAction> actions) {
+        this.actions = actions;
+    }
+
+    public List<DmfOfflineAction> getActions() {
+        return actions;
+    }
+}
