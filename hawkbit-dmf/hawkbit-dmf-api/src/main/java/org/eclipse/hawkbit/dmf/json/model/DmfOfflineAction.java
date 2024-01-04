@@ -23,13 +23,17 @@ public class DmfOfflineAction {
     private String externalRef; // leave it optional for now, it is not mandatory for us ?
     private final DmfActionStatus status;
     private final Long distributionSetId;
+
+    private final String controllerId;
     @JsonProperty
     private List<DmfOfflineActionUpdateStatus> statusEntries;
 
     public DmfOfflineAction(@JsonProperty(value = "status", required = true) final DmfActionStatus status,
-                            @JsonProperty(value = "distributionSetId", required = true) final Long distributionSetId) {
+                            @JsonProperty(value = "distributionSetId", required = true) final Long distributionSetId,
+                            @JsonProperty(value = "controllerId", required = true) final String controllerId) {
         this.status = status;
         this.distributionSetId = distributionSetId;
+        this.controllerId = controllerId;
     }
 
     public Long getDistributionSetId() {
@@ -54,5 +58,9 @@ public class DmfOfflineAction {
 
     public void setStatusEntries(List<DmfOfflineActionUpdateStatus> statusEntries) {
         this.statusEntries = statusEntries;
+    }
+
+    public String getControllerId() {
+        return controllerId;
     }
 }
