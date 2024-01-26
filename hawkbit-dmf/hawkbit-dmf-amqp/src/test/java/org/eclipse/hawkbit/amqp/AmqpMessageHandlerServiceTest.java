@@ -34,13 +34,7 @@ import org.eclipse.hawkbit.cache.DownloadIdCache;
 import org.eclipse.hawkbit.dmf.amqp.api.EventTopic;
 import org.eclipse.hawkbit.dmf.amqp.api.MessageHeaderKey;
 import org.eclipse.hawkbit.dmf.amqp.api.MessageType;
-import org.eclipse.hawkbit.dmf.json.model.DmfActionStatus;
-import org.eclipse.hawkbit.dmf.json.model.DmfActionUpdateStatus;
-import org.eclipse.hawkbit.dmf.json.model.DmfAttributeUpdate;
-import org.eclipse.hawkbit.dmf.json.model.DmfAutoConfirmation;
-import org.eclipse.hawkbit.dmf.json.model.DmfCreateThing;
-import org.eclipse.hawkbit.dmf.json.model.DmfDownloadResponse;
-import org.eclipse.hawkbit.dmf.json.model.DmfUpdateMode;
+import org.eclipse.hawkbit.dmf.json.model.*;
 import org.eclipse.hawkbit.repository.ArtifactManagement;
 import org.eclipse.hawkbit.repository.ConfirmationManagement;
 import org.eclipse.hawkbit.repository.ControllerManagement;
@@ -526,6 +520,33 @@ public class AmqpMessageHandlerServiceTest {
     }
 
     @Test
+    @Description("Tests create DMF offline actions")
+    void createDmfOfflineAction() {
+        final MessageProperties messageProperties = createMessageProperties(MessageType.EVENT);
+        messageProperties.setHeader(MessageHeaderKey.TOPIC, "CREATE_OFFLINE_ACTIONS");
+        final DmfOfflineAction dmfOfflineAction = new DmfOfflineAction(DmfActionStatus.FINISHED, 123L, "123");
+
+        final Message message = createMessage(dmfOfflineAction, messageProperties);
+
+        amqpMessageHandlerService.onMessage(message, MessageType.EVENT.name(), TENANT, VIRTUAL_HOST);
+//ToDo  verify(controllerManagementMock).createDmfOfflineAction(captures);
+    }
+
+    @Test
+    @Description("Tests DMF offline actions withot controller Id")
+    void createDmfOfflineActionWithoutControllerId() {
+        final MessageProperties messageProperties = createMessageProperties(MessageType.EVENT);
+        messageProperties.setHeader(MessageHeaderKey.TOPIC, "CREATE_OFFLINE_ACTIONS");
+        final DmfOfflineAction dmfOfflineAction = new DmfOfflineAction(DmfActionStatus.FINISHED, 123L, null);
+
+        final Message message = createMessage(dmfOfflineAction, messageProperties);
+
+        assertThatExceptionOfType(AmqpRejectAndDontRequeueException.class)
+                .isThrownBy(() -> amqpMessageHandlerService.onMessage(message, MessageType.EVENT.name(), TENANT,
+                        VIRTUAL_HOST));
+    }
+
+    @Test
     @Description("Tests that an download request is denied for an artifact which does not exists")
     public void authenticationRequestDeniedForArtifactWhichDoesNotExists() {
         final MessageProperties messageProperties = createMessageProperties(null);
@@ -813,4 +834,5 @@ public class AmqpMessageHandlerServiceTest {
     private Message createMessage(final Object object, final MessageProperties messageProperties) {
         return messageConverter.toMessage(object, messageProperties);
     }
+
 }
