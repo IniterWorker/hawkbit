@@ -80,7 +80,13 @@ public class JpaRolloutHandler implements RolloutHandler {
 
         try {
             log.trace("Trigger handling {} rollouts.", rollouts.size());
-            rollouts.forEach(rolloutId -> handleRolloutInNewTransaction(rolloutId, handlerId));
+            rollouts.forEach(rolloutId -> {
+                try {
+                    handleRolloutInNewTransaction(rolloutId, handlerId);
+                } catch (final Throwable t) {
+                    log.error("Error handling rollout with id {}", rolloutId, t);
+                }
+            });
         } finally {
             if (log.isTraceEnabled()) {
                 log.trace("Unlock lock {}", lock);
