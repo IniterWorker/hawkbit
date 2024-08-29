@@ -13,8 +13,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.hawkbit.im.authentication.TenantAwareAuthenticationDetails;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +28,13 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Slf4j
 public class MDCHandler {
 
     public static String MDC_KEY_TENANT = "tenant";
@@ -148,6 +153,18 @@ public class MDCHandler {
                         throws ServletException, IOException {
                     try {
                         mdcFilter.withLogging(() -> {
+                            String requestUuid = UUID.randomUUID().toString();
+                            String requestedSessionId = request.getRequestedSessionId();
+                            HttpSession session = request.getSession(false);
+                            StringBuilder stringBuilder = new StringBuilder(String.format("[%s] Incoming REST Request for %s",requestUuid, request.getRequestURI()));
+                            Enumeration<String> requestHeaders = request.getHeaderNames();
+                            while (requestHeaders.hasMoreElements()) {
+                                String headerName = requestHeaders.nextElement();
+                                stringBuilder.append(System.lineSeparator()).append(String.format("[%s] Header [%s: %s]",requestUuid, headerName, request.getHeader(headerName)));
+                            }
+                            stringBuilder.append(System.lineSeparator()).append(String.format("[%s] RequestSessionId %s",requestUuid, requestedSessionId));
+                            stringBuilder.append(System.lineSeparator()).append(String.format("[%s] CurrentSessionId %s",requestUuid, session != null ? session.getId() : null));
+                            log.trace(stringBuilder.toString());
                             filterChain.doFilter(request, response);
                             return null;
                         });
